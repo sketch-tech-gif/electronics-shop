@@ -1,0 +1,190 @@
+### Electronics Shop API Tests
+### Install "REST Client" extension in VS Code to use this file
+
+### Variables
+@host = http://localhost:5000
+@api = /api/products
+
+### 1. Get All Products
+GET {{host}}{{api}}
+
+### 2. Get Single Product (replace with actual ID)
+GET {{host}}{{api}}/PRODUCT_ID_HERE
+
+### 3. Create iPhone 15 Pro
+POST {{host}}{{api}}
+Content-Type: application/json
+
+{
+  "name": "iPhone 15 Pro",
+  "sku": "IP15PRO",
+  "category": "Phones",
+  "brand": "Apple",
+  "price": 120000,
+  "description": "Latest Apple smartphone with A17 Bionic chip",
+  "specs": "6.1 inch display, 256GB storage",
+  "imageUrl": "https://via.placeholder.com/300?text=iPhone+15",
+  "inStock": true
+}
+
+### 4. Create Samsung Galaxy S24
+POST {{host}}{{api}}
+Content-Type: application/json
+
+{
+  "name": "Samsung Galaxy S24 Ultra",
+  "sku": "SGS24U",
+  "category": "Phones",
+  "brand": "Samsung",
+  "price": 145000,
+  "description": "Powerful Android phone with advanced features",
+  "specs": "6.8 inch display, 256GB storage, 120Hz display",
+  "imageUrl": "https://via.placeholder.com/300?text=Galaxy+S24",
+  "inStock": true
+}
+
+### 5. Create MacBook Pro
+POST {{host}}{{api}}
+Content-Type: application/json
+
+{
+  "name": "MacBook Pro 16 M3",
+  "sku": "MBP16M3",
+  "category": "Laptops",
+  "brand": "Apple",
+  "price": 350000,
+  "description": "Professional laptop for developers and creators",
+  "specs": "16-inch display, 32GB RAM, 1TB SSD",
+  "imageUrl": "https://via.placeholder.com/300?text=MacBook+Pro",
+  "inStock": true
+}
+
+### 6. Create Dell XPS 15
+POST {{host}}{{api}}
+Content-Type: application/json
+
+{
+  "name": "Dell XPS 15",
+  "sku": "DELLXPS15",
+  "category": "Laptops",
+  "brand": "Dell",
+  "price": 280000,
+  "description": "Powerful laptop with stunning display",
+  "specs": "15.6 inch OLED, 32GB RAM, RTX 4070",
+  "imageUrl": "https://via.placeholder.com/300?text=Dell+XPS",
+  "inStock": true
+}
+
+### 7. Create Sony Headphones
+POST {{host}}{{api}}
+Content-Type: application/json
+
+{
+  "name": "Sony WH-1000XM5",
+  "sku": "SONYWH5",
+  "category": "Audio",
+  "brand": "Sony",
+  "price": 45000,
+  "description": "Premium wireless headphones with noise cancellation",
+  "specs": "40-hour battery, ANC, premium sound",
+  "imageUrl": "https://via.placeholder.com/300?text=Sony+Headphones",
+  "inStock": true
+}
+
+### 8. Create Apple AirPods Max
+POST {{host}}{{api}}
+Content-Type: application/json
+
+{
+  "name": "Apple AirPods Max",
+  "sku": "APAIRMAX",
+  "category": "Audio",
+  "brand": "Apple",
+  "price": 95000,
+  "description": "Premium spatial audio headphones",
+  "specs": "20-hour battery, Active Noise Cancellation",
+  "imageUrl": "https://via.placeholder.com/300?text=AirPods+Max",
+  "inStock": true
+}
+
+### 9. Create Apple Watch Ultra
+POST {{host}}{{api}}
+Content-Type: application/json
+
+{
+  "name": "Apple Watch Ultra",
+  "sku": "AWULTRA",
+  "category": "Wearables",
+  "brand": "Apple",
+  "price": 80000,
+  "description": "Rugged smartwatch for outdoor enthusiasts",
+  "specs": "49mm titanium case, always-on display",
+  "imageUrl": "https://via.placeholder.com/300?text=Watch+Ultra",
+  "inStock": true
+}
+
+### 10. Create Samsung Galaxy Watch
+POST {{host}}{{api}}
+Content-Type: application/json
+
+{
+  "name": "Samsung Galaxy Watch 6 Classic",
+  "sku": "SGWATCH6",
+  "category": "Wearables",
+  "brand": "Samsung",
+  "price": 35000,
+  "description": "Classic design smartwatch with rotating bezel",
+  "specs": "1.3 inch AMOLED, 40mm case",
+  "imageUrl": "https://via.placeholder.com/300?text=Galaxy+Watch",
+  "inStock": true
+}
+
+### 11. Create iPad Air
+POST {{host}}{{api}}
+Content-Type: application/json
+
+{
+  "name": "iPad Air 11-inch",
+  "sku": "IPADAIR11",
+  "category": "Tablets",
+  "brand": "Apple",
+  "price": 95000,
+  "description": "Powerful tablet with M1 chip",
+  "specs": "11-inch display, 256GB, M1 chip",
+  "imageUrl": "https://via.placeholder.com/300?text=iPad+Air",
+  "inStock": true
+}
+
+### 12. Create Samsung Tab S9
+POST {{host}}{{api}}
+Content-Type: application/json
+
+{
+  "name": "Samsung Galaxy Tab S9 Ultra",
+  "sku": "SGTABS9U",
+  "category": "Tablets",
+  "brand": "Samsung",
+  "price": 180000,
+  "description": "Premium tablet with large display",
+  "specs": "14.6 inch display, Snapdragon 8 Gen 2",
+  "imageUrl": "https://via.placeholder.com/300?text=Tab+S9",
+  "inStock": true
+}
+
+### 13. Update Product (replace PRODUCT_ID)
+PUT {{host}}{{api}}/PRODUCT_ID_HERE
+Content-Type: application/json
+
+{
+  "price": 100000,
+  "inStock": false
+}
+
+### 14. Delete Product (replace PRODUCT_ID)
+DELETE {{host}}{{api}}/PRODUCT_ID_HERE
+
+### Notes:
+### - After creating a product, copy the _id from response to use in GET/PUT/DELETE requests
+### - All prices are in KES (Kenyan Shillings)
+### - Categories: Phones, Laptops, Audio, Wearables, Tablets
+### - Images use placeholder service (you can replace with real image URLs)
