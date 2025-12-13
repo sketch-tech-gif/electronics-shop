@@ -16,6 +16,12 @@ function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeleteProduct, 
     imageUrl: "",
     inStock: true,
   });
+  
+
+  // New states for file upload
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [uploadedUrls, setUploadedUrls] = useState([]);
+  const [uploading, setUploading] = useState(false);
 
   // Reset form
   const resetForm = () => {
@@ -33,6 +39,8 @@ function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeleteProduct, 
     });
     setEditingId(null);
     setShowForm(false);
+    setSelectedFiles([]);
+    setUploadedUrls([]);
   };
 
   // Handle input change
@@ -43,6 +51,53 @@ function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeleteProduct, 
       [name]: type === "checkbox" ? checked : value,
     });
   };
+
+  // Handle file selection
+  const handleFileChange = (e) => {
+    setSelectedFiles([...e.target.files]);
+  };
+
+  // Handle image upload
+  // Handle image upload
+const handleUpload = async () => {
+  if (selectedFiles.length === 0) {
+    alert("Please select at least one image");
+    return;
+  }
+
+  setUploading(true);
+  const formDataUpload = new FormData();
+  selectedFiles.forEach((file) => {
+    formDataUpload.append("images", file);
+  });
+
+  try {
+    const res = await fetch("http://localhost:5000/api/upload", {
+      method: "POST",
+      body: formDataUpload,
+    });
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Upload failed: ${errorText}`);
+    }
+
+    const data = await res.json();
+    
+    if (data.urls && data.urls.length > 0) {
+      setUploadedUrls(data.urls);
+      // FIXED: Properly spread existing formData
+      setFormData(prev => ({ ...prev, imageUrl: data.urls[0] }));
+      alert(`Successfully uploaded ${data.urls.length} image(s)`);
+    }
+  } catch (error) {
+    alert("Upload failed: " + error.message);
+    console.error("Upload error:", error);
+  } finally {
+    setUploading(false);
+  }
+};
+
 
   // Handle form submit (add or edit)
   const handleSubmit = async (e) => {
@@ -114,6 +169,7 @@ function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeleteProduct, 
       imageUrl: product.imageUrl,
       inStock: product.inStock,
     });
+    setUploadedUrls(product.imageUrl ? [product.imageUrl] : []);
     setEditingId(product._id);
     setShowForm(true);
   };
@@ -141,10 +197,8 @@ function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeleteProduct, 
   return (
     <div className="admin-panel">
       <div className="admin-header">
-        <h2>📋 Admin Panel</h2>
-        <button className="btn-close-admin" onClick={onClose}>
-          ✕ Back to Shop
-        </button>
+        <h2>Admin Panel</h2>
+        
       </div>
 
       {!showForm ? (
@@ -157,6 +211,7 @@ function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeleteProduct, 
             <table className="products-table">
               <thead>
                 <tr>
+                  <th>Image</th>
                   <th>Name</th>
                   <th>SKU</th>
                   <th>Category</th>
@@ -170,6 +225,15 @@ function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeleteProduct, 
               <tbody>
                 {products.map((product) => (
                   <tr key={product._id}>
+                    <td>
+                      {product.imageUrl && (
+                        <img 
+                          src={product.imageUrl} 
+                          alt={product.name}
+                          style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }}
+                        />
+                      )}
+                    </td>
                     <td>{product.name}</td>
                     <td>{product.sku}</td>
                     <td>{product.category}</td>
@@ -317,15 +381,52 @@ function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeleteProduct, 
               </div>
             </div>
 
+            {/* NEW: Image Upload Section */}
             <div className="form-row">
-              <div className="form-group">
-                <label>Image URL</label>
+              <div className="form-group image-upload-group">
+                <label>Product Images</label>
+                <div className="upload-controls">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileChange}
+                    className="file-input"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleUpload}
+                    disabled={uploading || selectedFiles.length === 0}
+                    className="btn-upload"
+                  >
+                    {uploading ? "Uploading..." : "📤 Upload Images"}
+                  </button>
+                </div>
+
+                {selectedFiles.length > 0 && !uploading && (
+                  <p className="file-info">
+                    {selectedFiles.length} file(s) selected
+                  </p>
+                )}
+
+                {uploadedUrls.length > 0 && (
+                  <div className="uploaded-previews">
+                    <p><strong>Uploaded Images:</strong></p>
+                    <div className="preview-grid">
+                      {uploadedUrls.map((url, i) => (
+                        <div key={i} className="preview-item">
+                          <img src={url} alt={`Preview ${i + 1}`} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Hidden field to store the image URL */}
                 <input
-                  type="url"
+                  type="hidden"
                   name="imageUrl"
                   value={formData.imageUrl}
-                  onChange={handleInputChange}
-                  placeholder="https://example.com/product-image.jpg"
                 />
               </div>
             </div>

@@ -2,9 +2,8 @@ import { useEffect, useState } from "react";
 import ProductList from "./components/ProductList";
 import Cart from "./components/Cart";
 import ProductDetail from "./components/ProductDetail";
-import AdminPanel from "./components/AdminPanel";
-import AdminLogin from "./components/AdminLogin";
 import "./App.css";
+
 
 function App() {
   const [products, setProducts] = useState([]);
@@ -12,14 +11,14 @@ function App() {
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [showAdmin, setShowAdmin] = useState(false);
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
-  // Contact details for phone and WhatsApp orders — update to your business numbers
+
+
+  // Contact details for phone and WhatsApp orders
   const CONTACT_PHONE = "+254745909218";
   const WHATSAPP_NUMBER = "+254745909218";
-  // Remove SALE_PRICE - use product price only
   const SALE_PRICE = null;
+
+
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("All");
   const [filterBrand, setFilterBrand] = useState("All");
@@ -29,9 +28,11 @@ function App() {
   const [sortBy, setSortBy] = useState("name");
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
 
+
   useEffect(() => {
     fetchProducts();
   }, []);
+
 
   const fetchProducts = async () => {
     try {
@@ -45,11 +46,14 @@ function App() {
     }
   };
 
+
   // Get unique categories
   const categories = ["All", ...new Set(products.map((p) => p.category))];
 
+
   // Get unique brands
   const brands = ["All", ...new Set(products.map((p) => p.brand).filter(Boolean))];
+
 
   // Filter and sort products
   const filteredProducts = products
@@ -76,6 +80,7 @@ function App() {
       }
     });
 
+
   const addToCart = (product, quantity = 1) => {
     const existingItem = cart.find((item) => item._id === product._id);
     if (existingItem) {
@@ -91,9 +96,11 @@ function App() {
     }
   };
 
+
   const removeFromCart = (productId) => {
     setCart(cart.filter((item) => item._id !== productId));
   };
+
 
   const updateQuantity = (productId, quantity) => {
     if (quantity <= 0) {
@@ -107,108 +114,26 @@ function App() {
     }
   };
 
-  const handleAddProduct = (newProduct) => {
-    setProducts([...products, newProduct]);
-  };
-
-  const handleUpdateProduct = (productId, updatedProduct) => {
-    setProducts(
-      products.map((p) => (p._id === productId ? updatedProduct : p))
-    );
-  };
-
-  const handleDeleteProduct = (productId) => {
-    setProducts(products.filter((p) => p._id !== productId));
-  };
-
-  const handleAdminClick = () => {
-    if (isAdminLoggedIn) {
-      setShowAdmin(!showAdmin);
-    } else {
-      setShowAdminLogin(true);
-    }
-  };
-
-  const handleAdminLoginSuccess = () => {
-    setIsAdminLoggedIn(true);
-    setShowAdminLogin(false);
-    setShowAdmin(true);
-  };
-
-  const handleAdminLogout = () => {
-    setIsAdminLoggedIn(false);
-    setShowAdmin(false);
-  };
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
 
   return (
     <div className="app">
       <header className="header">
-  <div className="header-content">
-    <h1 className="header-title">MERCY ELECTRONICS LIMITED</h1>
-  </div>
-</header>
+        <div className="header-content">
+          <h1 className="header-title">MERCY ELECTRONICS SHOP</h1>
+        </div>
+      </header>
 
-<div className="hero">
-  <div className="hero-content">
-    <div className="hero-left">
-      <h2>Top Quality products and services You Can Trust</h2>
-      <p>Fast delivery within Nairobi • Order via WhatsApp or call to reserve</p>
-    </div>
 
-    <div className="hero-actions">
-      <button
-        className="admin-btn"
-        onClick={handleAdminClick}
-        title="Admin Panel"
-      >
-        ⚙️ {isAdminLoggedIn ? "Admin" : ""}
-      </button>
-      <button
-        className="cart-btn"
-        onClick={() => setShowCart(!showCart)}
-      >
-        🛒cart ({cartCount})
-      </button>
-    </div>
-  </div>
-</div>
+      <div className="hero">
+        <div className="hero-content">
+          <div className="hero-left">
+            <h2>Top Quality products and services You Can Trust</h2>
+            <p>Fast delivery within Nairobi • Order via WhatsApp or call to reserve</p>
+          </div>
 
-      {showAdminLogin && (
-        <AdminLogin
-          onSuccess={handleAdminLoginSuccess}
-          onClose={() => setShowAdminLogin(false)}
-        />
-      )}
-
-      {showAdmin ? (
-        <AdminPanel
-          products={products}
-          onAddProduct={handleAddProduct}
-          onUpdateProduct={handleUpdateProduct}
-          onDeleteProduct={handleDeleteProduct}
-          onClose={() => {
-            setShowAdmin(false);
-            setIsAdminLoggedIn(false);
-          }}
-        />
-      ) : showCart ? (
-        <Cart
-          cart={cart}
-          onRemove={removeFromCart}
-          onUpdateQuantity={updateQuantity}
-          onClose={() => setShowCart(false)}
-        />
-      ) : selectedProduct ? (
-        <ProductDetail
-          product={selectedProduct}
-          allProducts={products}
-          onAddToCart={(p, qty) => addToCart(p, qty)}
-          onClose={() => setSelectedProduct(null)}
-        />
-      ) : (
-        <main className="main-content">
           <div className="search-bar">
             <input
               type="text"
@@ -238,10 +163,39 @@ function App() {
             )}
           </div>
 
+          <div className="hero-actions">
+            <button
+              className="cart-btn"
+              onClick={() => setShowCart(!showCart)}
+            >
+              🛒 Cart ({cartCount})
+            </button>
+          </div>
+        </div>
+      </div>
+
+
+      {showCart ? (
+        <Cart
+          cart={cart}
+          onRemove={removeFromCart}
+          onUpdateQuantity={updateQuantity}
+          onClose={() => setShowCart(false)}
+        />
+      ) : selectedProduct ? (
+        <ProductDetail
+          product={selectedProduct}
+          allProducts={products}
+          onAddToCart={(p, qty) => addToCart(p, qty)}
+          onClose={() => setSelectedProduct(null)}
+        />
+      ) : (
+        <main className="main-content">
           <div className="products-section">
             {showFilterSidebar && searchTerm && (
               <aside className="filter-sidebar">
                 <h3>🔍 Search Filters</h3>
+
 
                 <div className="filter-group">
                   <h4>Price Range (KES)</h4>
@@ -268,6 +222,7 @@ function App() {
                   </button>
                 </div>
 
+
                 <div className="filter-group">
                   <h4>Category</h4>
                   <ul>
@@ -288,6 +243,7 @@ function App() {
                   </ul>
                 </div>
 
+
                 <div className="filter-group">
                   <h4>Brand</h4>
                   <ul>
@@ -307,6 +263,8 @@ function App() {
                     ))}
                   </ul>
                 </div>
+                
+
 
                 <div className="filter-group">
                   <label className="stock-checkbox">
@@ -321,17 +279,13 @@ function App() {
               </aside>
             )}
 
+
             <div className={`products-content ${showFilterSidebar && searchTerm ? "with-sidebar" : ""}`}>
               {loading ? (
                 <div className="loading">Loading products...</div>
               ) : filteredProducts.length > 0 ? (
                 <>
-                  <div className="results-header">
-                    <span className="results-count">
-                      {filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""} found
-                    </span>
-                    {/* Sort removed by request */}
-                  </div>
+                  
                   <ProductList
                     products={filteredProducts}
                     onAddToCart={addToCart}
@@ -351,11 +305,13 @@ function App() {
         </main>
       )}
 
+
       <footer className="footer">
         <p>&copy; 2025 Mercy Electronics Shop. All rights reserved.</p>
       </footer>
     </div>
   );
 }
+
 
 export default App;

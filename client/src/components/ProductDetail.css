@@ -73,6 +73,43 @@
   color: #666;
   margin: 0;
 }
+/* Price styling */
+.price {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f68b1e;
+  margin: 4px 0 0;
+  text-align: center;        /* center price on its line */
+}
+
+/* Footer inside card */
+.product-footer {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Make Add to Cart fill the card width */
+.add-to-cart-btn,
+.btn-add-cart {
+  width: 100%;               /* full width of card */
+  padding: 8px 0;
+  background: #ff6a00;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+
+.add-to-cart-btn:hover,
+.btn-add-cart:hover {
+  background: #e65500;
+}
+
 
 .price {
   font-size: 20px;
