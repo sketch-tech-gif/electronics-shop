@@ -4,6 +4,7 @@ import Cart from "./components/Cart";
 import ProductDetail from "./components/ProductDetail";
 import "./App.css";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function App() {
   const [products, setProducts] = useState([]);
@@ -12,12 +13,9 @@ function App() {
   const [showCart, setShowCart] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-
-  // Contact details for phone and WhatsApp orders
   const CONTACT_PHONE = "+254745909218";
   const WHATSAPP_NUMBER = "+254745909218";
   const SALE_PRICE = null;
-
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("All");
@@ -28,15 +26,13 @@ function App() {
   const [sortBy, setSortBy] = useState("name");
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
 
-
   useEffect(() => {
     fetchProducts();
   }, []);
 
-
   const fetchProducts = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/products");
+      const res = await fetch(`${API_URL}/api/products`);
       const data = await res.json();
       setProducts(data);
     } catch (err) {
@@ -46,26 +42,32 @@ function App() {
     }
   };
 
-
-  // Get unique categories
   const categories = ["All", ...new Set(products.map((p) => p.category))];
 
+  const brands = [
+    "All",
+    ...new Set(products.map((p) => p.brand).filter(Boolean)),
+  ];
 
-  // Get unique brands
-  const brands = ["All", ...new Set(products.map((p) => p.brand).filter(Boolean))];
-
-
-  // Filter and sort products
   const filteredProducts = products
     .filter((p) => {
       const matchesSearch = p.name
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
-      const matchesCategory = filterCategory === "All" || p.category === filterCategory;
-      const matchesBrand = filterBrand === "All" || p.brand === filterBrand;
-      const matchesPrice = p.price >= filterPriceMin && p.price <= filterPriceMax;
+      const matchesCategory =
+        filterCategory === "All" || p.category === filterCategory;
+      const matchesBrand =
+        filterBrand === "All" || p.brand === filterBrand;
+      const matchesPrice =
+        p.price >= filterPriceMin && p.price <= filterPriceMax;
       const matchesStock = !filterInStock || p.inStock;
-      return matchesSearch && matchesCategory && matchesBrand && matchesPrice && matchesStock;
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesBrand &&
+        matchesPrice &&
+        matchesStock
+      );
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -79,7 +81,6 @@ function App() {
           return 0;
       }
     });
-
 
   const addToCart = (product, quantity = 1) => {
     const existingItem = cart.find((item) => item._id === product._id);
@@ -96,11 +97,9 @@ function App() {
     }
   };
 
-
   const removeFromCart = (productId) => {
     setCart(cart.filter((item) => item._id !== productId));
   };
-
 
   const updateQuantity = (productId, quantity) => {
     if (quantity <= 0) {
@@ -114,9 +113,7 @@ function App() {
     }
   };
 
-
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-
 
   return (
     <div className="app">
@@ -126,12 +123,14 @@ function App() {
         </div>
       </header>
 
-
       <div className="hero">
         <div className="hero-content">
           <div className="hero-left">
             <h2>Top Quality products and services You Can Trust</h2>
-            <p>Fast delivery within Nairobi • Order via WhatsApp or call to reserve</p>
+            <p>
+              Fast delivery within Nairobi • Order via WhatsApp or call to
+              reserve
+            </p>
           </div>
 
           <div className="search-bar">
@@ -174,7 +173,6 @@ function App() {
         </div>
       </div>
 
-
       {showCart ? (
         <Cart
           cart={cart}
@@ -196,7 +194,6 @@ function App() {
               <aside className="filter-sidebar">
                 <h3>🔍 Search Filters</h3>
 
-
                 <div className="filter-group">
                   <h4>Price Range (KES)</h4>
                   <div className="price-inputs">
@@ -204,14 +201,20 @@ function App() {
                       type="number"
                       placeholder="Min"
                       value={filterPriceMin}
-                      onChange={(e) => setFilterPriceMin(Number(e.target.value) || 0)}
+                      onChange={(e) =>
+                        setFilterPriceMin(Number(e.target.value) || 0)
+                      }
                     />
                     <span>—</span>
                     <input
                       type="number"
                       placeholder="Max"
                       value={filterPriceMax}
-                      onChange={(e) => setFilterPriceMax(Number(e.target.value) || 10000000)}
+                      onChange={(e) =>
+                        setFilterPriceMax(
+                          Number(e.target.value) || 10000000
+                        )
+                      }
                     />
                   </div>
                   <button
@@ -221,7 +224,6 @@ function App() {
                     Apply
                   </button>
                 </div>
-
 
                 <div className="filter-group">
                   <h4>Category</h4>
@@ -234,7 +236,9 @@ function App() {
                             name="category"
                             value={cat}
                             checked={filterCategory === cat}
-                            onChange={(e) => setFilterCategory(e.target.value)}
+                            onChange={(e) =>
+                              setFilterCategory(e.target.value)
+                            }
                           />
                           {cat}
                         </label>
@@ -242,7 +246,6 @@ function App() {
                     ))}
                   </ul>
                 </div>
-
 
                 <div className="filter-group">
                   <h4>Brand</h4>
@@ -255,7 +258,9 @@ function App() {
                             name="brand"
                             value={brand}
                             checked={filterBrand === brand}
-                            onChange={(e) => setFilterBrand(e.target.value)}
+                            onChange={(e) =>
+                              setFilterBrand(e.target.value)
+                            }
                           />
                           {brand}
                         </label>
@@ -263,15 +268,15 @@ function App() {
                     ))}
                   </ul>
                 </div>
-                
-
 
                 <div className="filter-group">
                   <label className="stock-checkbox">
                     <input
                       type="checkbox"
                       checked={filterInStock}
-                      onChange={(e) => setFilterInStock(e.target.checked)}
+                      onChange={(e) =>
+                        setFilterInStock(e.target.checked)
+                      }
                     />
                     In Stock Only
                   </label>
@@ -279,22 +284,22 @@ function App() {
               </aside>
             )}
 
-
-            <div className={`products-content ${showFilterSidebar && searchTerm ? "with-sidebar" : ""}`}>
+            <div
+              className={`products-content ${
+                showFilterSidebar && searchTerm ? "with-sidebar" : ""
+              }`}
+            >
               {loading ? (
                 <div className="loading">Loading products...</div>
               ) : filteredProducts.length > 0 ? (
-                <>
-                  
-                  <ProductList
-                    products={filteredProducts}
-                    onAddToCart={addToCart}
-                    onViewDetails={(p) => setSelectedProduct(p)}
-                    contactPhone={CONTACT_PHONE}
-                    whatsappNumber={WHATSAPP_NUMBER}
-                    salePrice={SALE_PRICE}
-                  />
-                </>
+                <ProductList
+                  products={filteredProducts}
+                  onAddToCart={addToCart}
+                  onViewDetails={(p) => setSelectedProduct(p)}
+                  contactPhone={CONTACT_PHONE}
+                  whatsappNumber={WHATSAPP_NUMBER}
+                  salePrice={SALE_PRICE}
+                />
               ) : (
                 <div className="no-results">
                   <p>No products found matching your search.</p>
@@ -305,13 +310,11 @@ function App() {
         </main>
       )}
 
-
       <footer className="footer">
         <p>&copy; 2025 Mercy Electronics Shop. All rights reserved.</p>
       </footer>
     </div>
   );
 }
-
 
 export default App;
