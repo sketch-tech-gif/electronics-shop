@@ -49,8 +49,14 @@ function App() {
     ...new Set(products.map((p) => p.brand).filter(Boolean)),
   ];
 
+  // Filter and sort products
   const filteredProducts = products
     .filter((p) => {
+      // If user hasn't typed anything, show everything
+      if (!searchTerm.trim()) {
+        return true;
+      }
+
       const matchesSearch = p.name
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
@@ -61,6 +67,7 @@ function App() {
       const matchesPrice =
         p.price >= filterPriceMin && p.price <= filterPriceMax;
       const matchesStock = !filterInStock || p.inStock;
+
       return (
         matchesSearch &&
         matchesCategory &&
@@ -76,9 +83,8 @@ function App() {
         case "price-high":
           return b.price - a.price;
         case "name":
-          return a.name.localeCompare(b.name);
         default:
-          return 0;
+          return a.name.localeCompare(b.name);
       }
     });
 
