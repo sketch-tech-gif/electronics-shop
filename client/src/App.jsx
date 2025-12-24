@@ -343,7 +343,7 @@ function App() {
 
 
       <footer className="footer">
-        <p>&copy; 2025 Faith Electronics Shop. All rights reserved.</p>
+        <p>&copy;Faith Electronics.All rights reserved.</p>
       </footer>
     </div>
   );
