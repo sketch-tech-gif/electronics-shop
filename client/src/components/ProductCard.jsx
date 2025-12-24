@@ -11,14 +11,28 @@ function ProductCard({ product, onAddToCart, onViewDetails, contactPhone, whatsa
 
   return (
     <div className="product-card">
-      {product.imageUrl && (
-        <div className="product-image" onClick={handleView} role="button" tabIndex={0}>
-          <img src={product.imageUrl} alt={product.name} />
-        </div>
-      )}
+      <div className="product-image" onClick={handleView} role="button" tabIndex={0}>
+        {product.imageUrl ? (
+          <img 
+            src={product.imageUrl} 
+            alt={product.name}
+            loading="eager"
+            fetchpriority="high"
+            onError={(e) => {
+              console.log('Image load error:', product.imageUrl);
+              e.target.onerror = null;
+              e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="300"%3E%3Crect fill="%23f5f5f5" width="300" height="300"/%3E%3Ctext fill="%23999" font-size="18" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3ENo Image%3C/text%3E%3C/svg%3E';
+            }}
+          />
+        ) : (
+          <div style={{width: '100%', height: '100%', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999'}}>
+            No Image
+          </div>
+        )}
+      </div>
 
       <div className="product-info">
-        <h3 className="clickable" onClick={handleView} role="button" tabIndex={0}>
+        <h3 className="product-name" onClick={handleView} role="button" tabIndex={0}>
           {product.name}
         </h3>
         {product.brand && <p className="brand">{product.brand}</p>}
@@ -26,7 +40,7 @@ function ProductCard({ product, onAddToCart, onViewDetails, contactPhone, whatsa
         <div className="product-footer">
           <div className="price-block">
             <p className="price">KES {product.price.toLocaleString()}</p>
-            {displaySalePrice && (
+            {displaySalePrice && displaySalePrice !== product.price && (
               <p className="sale-price">
                 Selling Price: KES {displaySalePrice.toLocaleString()}
               </p>
@@ -46,7 +60,6 @@ function ProductCard({ product, onAddToCart, onViewDetails, contactPhone, whatsa
                 Out of Stock
               </button>
             )}
-            {/* WhatsApp and Call buttons intentionally removed from card */}
           </div>
         </div>
       </div>
