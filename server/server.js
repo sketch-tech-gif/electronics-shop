@@ -13,8 +13,17 @@ const PORT = process.env.PORT || 5000;
 const BASE_URL =
   process.env.BASE_URL || "https://electronics-shop-api-id3m.onrender.com";
 
-// Middleware
-app.use(cors());
+// Middleware - CORS with allowed origins
+app.use(cors({
+  origin: [
+    'https://faith-electronics.onrender.com',
+    'https://faith-electronics-admin.onrender.com',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:3000'
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 // Simple health check
