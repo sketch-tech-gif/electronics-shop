@@ -4,7 +4,9 @@ import Cart from "./components/Cart";
 import ProductDetail from "./components/ProductDetail";
 import "./App.css";
 
+
 const API_URL = import.meta.env.VITE_API_URL || "https://electronics-shop-api-id3m.onrender.com";
+
 
 function App() {
   const [products, setProducts] = useState([]);
@@ -13,9 +15,11 @@ function App() {
   const [showCart, setShowCart] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
+
   const CONTACT_PHONE = "+254745909218";
   const WHATSAPP_NUMBER = "+254745909218";
   const SALE_PRICE = null;
+
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("All");
@@ -26,9 +30,11 @@ function App() {
   const [sortBy, setSortBy] = useState("name");
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
 
+
   useEffect(() => {
     fetchProducts();
   }, []);
+
 
   const fetchProducts = async () => {
     try {
@@ -42,12 +48,15 @@ function App() {
     }
   };
 
+
   const categories = ["All", ...new Set(products.map((p) => p.category))];
+
 
   const brands = [
     "All",
     ...new Set(products.map((p) => p.brand).filter(Boolean)),
   ];
+
 
   // Filter and sort products
   const filteredProducts = products
@@ -56,6 +65,7 @@ function App() {
       if (!searchTerm.trim()) {
         return true;
       }
+
 
       const matchesSearch = p.name
         .toLowerCase()
@@ -67,6 +77,7 @@ function App() {
       const matchesPrice =
         p.price >= filterPriceMin && p.price <= filterPriceMax;
       const matchesStock = !filterInStock || p.inStock;
+
 
       return (
         matchesSearch &&
@@ -88,6 +99,7 @@ function App() {
       }
     });
 
+
   const addToCart = (product, quantity = 1) => {
     const existingItem = cart.find((item) => item._id === product._id);
     if (existingItem) {
@@ -103,9 +115,11 @@ function App() {
     }
   };
 
+
   const removeFromCart = (productId) => {
     setCart(cart.filter((item) => item._id !== productId));
   };
+
 
   const updateQuantity = (productId, quantity) => {
     if (quantity <= 0) {
@@ -119,7 +133,9 @@ function App() {
     }
   };
 
+
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
 
   return (
     <div className="app">
@@ -128,6 +144,7 @@ function App() {
           <h1 className="header-title">FAITH-ELECTRONICS</h1>
         </div>
       </header>
+
 
       <div className="hero">
         <div className="hero-content">
@@ -138,6 +155,7 @@ function App() {
               reserve
             </p>
           </div>
+
 
           <div className="search-bar">
             <input
@@ -168,6 +186,7 @@ function App() {
             )}
           </div>
 
+
           <div className="hero-actions">
             <button
               className="cart-btn"
@@ -178,6 +197,7 @@ function App() {
           </div>
         </div>
       </div>
+
 
       {showCart ? (
         <Cart
@@ -199,6 +219,7 @@ function App() {
             {showFilterSidebar && searchTerm && (
               <aside className="filter-sidebar">
                 <h3>🔍 Search Filters</h3>
+
 
                 <div className="filter-group">
                   <h4>Price Range (KES)</h4>
@@ -231,6 +252,7 @@ function App() {
                   </button>
                 </div>
 
+
                 <div className="filter-group">
                   <h4>Category</h4>
                   <ul>
@@ -252,6 +274,7 @@ function App() {
                     ))}
                   </ul>
                 </div>
+
 
                 <div className="filter-group">
                   <h4>Brand</h4>
@@ -275,6 +298,7 @@ function App() {
                   </ul>
                 </div>
 
+
                 <div className="filter-group">
                   <label className="stock-checkbox">
                     <input
@@ -289,6 +313,7 @@ function App() {
                 </div>
               </aside>
             )}
+
 
             <div
               className={`products-content ${
@@ -316,11 +341,13 @@ function App() {
         </main>
       )}
 
+
       <footer className="footer">
-        <p>&copy; 2025 Mercy Electronics Shop. All rights reserved.</p>
+        <p>&copy; 2025 Faith Electronics Shop. All rights reserved.</p>
       </footer>
     </div>
   );
 }
+
 
 export default App;
