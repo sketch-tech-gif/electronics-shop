@@ -4,7 +4,7 @@ import Cart from "./components/Cart";
 import ProductDetail from "./components/ProductDetail";
 import "./App.css";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "https://electronics-shop-api-id3m.onrender.com";
 
 function App() {
   const [products, setProducts] = useState([]);
@@ -125,7 +125,7 @@ function App() {
     <div className="app">
       <header className="header">
         <div className="header-content">
-          <h1 className="header-title">MERCY ELECTRONICS SHOP</h1>
+          <h1 className="header-title">FAITH-ELECTRONICS</h1>
         </div>
       </header>
 
