@@ -6,7 +6,7 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/products")
+    fetch("https://electronics-shop-api-id3m.onrender.com//api/products")
       .then((res) => res.json())
       .then((data) => {
         setProducts(data);
@@ -29,7 +29,7 @@ function App() {
 
   return (
     <div className="app">
-      <h1>MERCY ELECTRONICS</h1>
+      <h1>FAITH ELECTRONICS</h1>
       {products.length === 0 ? (
         <p>No products yet.</p>
       ) : (
