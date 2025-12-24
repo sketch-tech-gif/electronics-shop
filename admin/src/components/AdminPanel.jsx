@@ -1,6 +1,8 @@
 import { useState } from "react";
 import "./AdminPanel.css";
 
+const API_URL = 'https://electronics-shop-api-id3m.onrender.com';
+
 function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeleteProduct, onClose }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -16,14 +18,11 @@ function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeleteProduct, 
     imageUrl: "",
     inStock: true,
   });
-  
 
-  // New states for file upload
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploadedUrls, setUploadedUrls] = useState([]);
   const [uploading, setUploading] = useState(false);
 
-  // Reset form
   const resetForm = () => {
     setFormData({
       name: "",
@@ -43,7 +42,6 @@ function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeleteProduct, 
     setUploadedUrls([]);
   };
 
-  // Handle input change
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({
@@ -52,54 +50,48 @@ function AdminPanel({ products, onAddProduct, onUpdateProduct, onDeleteProduct, 
     });
   };
 
-  // Handle file selection
   const handleFileChange = (e) => {
     setSelectedFiles([...e.target.files]);
   };
 
-  // Handle image upload
-  // Handle image upload
-const handleUpload = async () => {
-  if (selectedFiles.length === 0) {
-    alert("Please select at least one image");
-    return;
-  }
+  const handleUpload = async () => {
+    if (selectedFiles.length === 0) {
+      alert("Please select at least one image");
+      return;
+    }
 
-  setUploading(true);
-  const formDataUpload = new FormData();
-  selectedFiles.forEach((file) => {
-    formDataUpload.append("images", file);
-  });
-
-  try {
-    const res = await fetch("http://localhost:5000/api/upload", {
-      method: "POST",
-      body: formDataUpload,
+    setUploading(true);
+    const formDataUpload = new FormData();
+    selectedFiles.forEach((file) => {
+      formDataUpload.append("images", file);
     });
-    
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`Upload failed: ${errorText}`);
+
+    try {
+      const res = await fetch(`${API_URL}/api/upload`, {
+        method: "POST",
+        body: formDataUpload,
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Upload failed: ${errorText}`);
+      }
+
+      const data = await res.json();
+
+      if (data.urls && data.urls.length > 0) {
+        setUploadedUrls(data.urls);
+        setFormData((prev) => ({ ...prev, imageUrl: data.urls[0] }));
+        alert(`Successfully uploaded ${data.urls.length} image(s)`);
+      }
+    } catch (error) {
+      alert("Upload failed: " + error.message);
+      console.error("Upload error:", error);
+    } finally {
+      setUploading(false);
     }
+  };
 
-    const data = await res.json();
-    
-    if (data.urls && data.urls.length > 0) {
-      setUploadedUrls(data.urls);
-      // FIXED: Properly spread existing formData
-      setFormData(prev => ({ ...prev, imageUrl: data.urls[0] }));
-      alert(`Successfully uploaded ${data.urls.length} image(s)`);
-    }
-  } catch (error) {
-    alert("Upload failed: " + error.message);
-    console.error("Upload error:", error);
-  } finally {
-    setUploading(false);
-  }
-};
-
-
-  // Handle form submit (add or edit)
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -118,8 +110,7 @@ const handleUpload = async () => {
 
     try {
       if (editingId) {
-        // Update product
-        const res = await fetch(`http://localhost:5000/api/products/${editingId}`, {
+        const res = await fetch(`${API_URL}/api/products/${editingId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -133,8 +124,7 @@ const handleUpload = async () => {
           alert(`Failed to update product: ${error.message || "Unknown error"}`);
         }
       } else {
-        // Add new product
-        const res = await fetch("http://localhost:5000/api/products", {
+        const res = await fetch(`${API_URL}/api/products`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -155,7 +145,6 @@ const handleUpload = async () => {
     }
   };
 
-  // Handle edit button
   const handleEdit = (product) => {
     setFormData({
       name: product.name,
@@ -174,11 +163,10 @@ const handleUpload = async () => {
     setShowForm(true);
   };
 
-  // Handle delete button
   const handleDelete = async (productId) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
       try {
-        const res = await fetch(`http://localhost:5000/api/products/${productId}`, {
+        const res = await fetch(`${API_URL}/api/products/${productId}`, {
           method: "DELETE",
         });
         if (res.ok) {
@@ -198,7 +186,6 @@ const handleUpload = async () => {
     <div className="admin-panel">
       <div className="admin-header">
         <h2>Admin Panel</h2>
-        
       </div>
 
       {!showForm ? (
@@ -227,10 +214,15 @@ const handleUpload = async () => {
                   <tr key={product._id}>
                     <td>
                       {product.imageUrl && (
-                        <img 
-                          src={product.imageUrl} 
+                        <img
+                          src={product.imageUrl}
                           alt={product.name}
-                          style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }}
+                          style={{
+                            width: "50px",
+                            height: "50px",
+                            objectFit: "cover",
+                            borderRadius: "4px",
+                          }}
                         />
                       )}
                     </td>
@@ -381,7 +373,6 @@ const handleUpload = async () => {
               </div>
             </div>
 
-            {/* NEW: Image Upload Section */}
             <div className="form-row">
               <div className="form-group image-upload-group">
                 <label>Product Images</label>
@@ -411,7 +402,9 @@ const handleUpload = async () => {
 
                 {uploadedUrls.length > 0 && (
                   <div className="uploaded-previews">
-                    <p><strong>Uploaded Images:</strong></p>
+                    <p>
+                      <strong>Uploaded Images:</strong>
+                    </p>
                     <div className="preview-grid">
                       {uploadedUrls.map((url, i) => (
                         <div key={i} className="preview-item">
@@ -422,7 +415,6 @@ const handleUpload = async () => {
                   </div>
                 )}
 
-                {/* Hidden field to store the image URL */}
                 <input
                   type="hidden"
                   name="imageUrl"

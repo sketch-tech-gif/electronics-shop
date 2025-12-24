@@ -3,6 +3,9 @@ import AdminPanel from "./components/AdminPanel";
 import AdminLogin from "./components/AdminLogin";
 import "./App.css";
 
+const API_URL = 'https://electronics-shop-api-id3m.onrender.com';
+
+
 function App() {
   const [products, setProducts] = useState([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -15,7 +18,7 @@ function App() {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/products");
+      const res = await fetch(`${API_URL}/api/products`);
       const data = await res.json();
       setProducts(data);
     } catch (err) {
@@ -48,10 +51,7 @@ function App() {
   return (
     <div className="app">
       {!isLoggedIn ? (
-        <AdminLogin
-          onSuccess={handleLoginSuccess}
-          onClose={() => {}}
-        />
+        <AdminLogin onSuccess={handleLoginSuccess} onClose={() => {}} />
       ) : (
         <AdminPanel
           products={products}
