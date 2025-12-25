@@ -2,18 +2,24 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+const cloudinary = require("cloudinary").v2;
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Base URL for this API (used for image URLs)
 const BASE_URL =
   process.env.BASE_URL || "https://electronics-shop-api-id3m.onrender.com";
 
-// Middleware - CORS with allowed origins
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Middleware - CORS
 app.use(cors({
   origin: [
     'https://faith-electronics.onrender.com',
@@ -30,15 +36,6 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("Electronics Shop API is running");
 });
-
-// Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Serve uploaded images as static files
-app.use("/uploads", express.static(uploadsDir));
 
 // MongoDB Connection
 const MONGO_URI = process.env.MONGO_URI;
@@ -74,32 +71,19 @@ const productSchema = new mongoose.Schema({
 
 const Product = mongoose.model("Product", productSchema);
 
-// Configure Multer for image uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = Date.now() + "-" + file.originalname;
-    cb(null, uniqueName);
+// Configure Cloudinary Storage
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "faith-electronics",
+    allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
+    transformation: [{ width: 800, height: 800, crop: "limit" }]
   },
 });
 
 const upload = multer({
-  storage,
+  storage: storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif|webp/;
-    const extname = allowedTypes.test(
-      path.extname(file.originalname).toLowerCase()
-    );
-    const mimetype = allowedTypes.test(file.mimetype);
-    if (extname && mimetype) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only image files are allowed"));
-    }
-  },
 });
 
 // Image upload endpoint
@@ -109,9 +93,7 @@ app.post("/api/upload", upload.array("images", 5), (req, res) => {
       return res.status(400).json({ error: "No files uploaded" });
     }
 
-    const filePaths = req.files.map(
-      (file) => `${BASE_URL}/uploads/${file.filename}`
-    );
+    const filePaths = req.files.map((file) => file.path);
 
     res.json({ urls: filePaths });
   } catch (error) {
@@ -126,35 +108,6 @@ app.use((error, req, res, next) => {
     return res.status(400).json({ error: error.message });
   }
   next(error);
-});
-
-// FIX IMAGE URLS ROUTE - FIXES LOCALHOST REFERENCES
-app.post("/api/fix-image-urls", async (req, res) => {
-  try {
-    const products = await Product.find({ imageUrl: /localhost/ });
-    
-    let updated = 0;
-    for (const product of products) {
-      if (product.imageUrl && product.imageUrl.includes('localhost')) {
-        product.imageUrl = product.imageUrl.replace(
-          /http:\/\/localhost:\d+/g,
-          BASE_URL
-        );
-        await product.save();
-        updated++;
-      }
-    }
-    
-    res.json({ 
-      success: true,
-      message: `Fixed ${updated} product image URLs`,
-      baseUrl: BASE_URL,
-      totalChecked: products.length
-    });
-  } catch (err) {
-    console.error("Fix image URLs error:", err);
-    res.status(500).json({ error: err.message });
-  }
 });
 
 // Get all products
