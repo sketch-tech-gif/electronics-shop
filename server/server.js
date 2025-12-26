@@ -12,32 +12,34 @@ const PORT = process.env.PORT || 5000;
 const BASE_URL =
   process.env.BASE_URL || "https://electronics-shop-api-id3m.onrender.com";
 
-// Configure Cloudinary
+// ---------------- Cloudinary config ----------------
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Middleware - CORS
-app.use(cors({
-  origin: [
-    'https://faith-electronics.onrender.com',
-    'https://faith-electronics-admin.onrender.com',
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:3000'
-  ],
-  credentials: true
-}));
+// ---------------- Middleware ----------------
+app.use(
+  cors({
+    origin: [
+      "https://faith-electronics.onrender.com",
+      "https://faith-electronics-admin.onrender.com",
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:3000",
+    ],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
-// Simple health check
+// Health check
 app.get("/", (req, res) => {
   res.send("Electronics Shop API is running");
 });
 
-// MongoDB Connection
+// ---------------- MongoDB ----------------
 const MONGO_URI = process.env.MONGO_URI;
 
 if (!MONGO_URI) {
@@ -55,29 +57,34 @@ if (!MONGO_URI) {
     });
 }
 
-// Product Schema
-const productSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  sku: { type: String, required: true },
-  price: { type: Number, required: true },
-  category: { type: String, required: true },
-  brand: String,
-  description: String,
-  specs: String,
-  imageUrl: String,
-  salePrice: Number,
-  inStock: { type: Boolean, default: true },
-});
+// ---------------- Product model ----------------
+const productSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    sku: { type: String, required: true, trim: true },
+    price: { type: Number, required: true, min: 0 },
+    category: { type: String, required: true, trim: true },
+    brand: { type: String, trim: true },
+    description: { type: String, trim: true },
+    specs: { type: String, trim: true },
+    imageUrl: { type: String, trim: true },
+    salePrice: { type: Number, min: 0, default: null },
+    inStock: { type: Boolean, default: true },
+  },
+  {
+    timestamps: true,
+  }
+);
 
 const Product = mongoose.model("Product", productSchema);
 
-// Configure Cloudinary Storage
+// ---------------- Multer + Cloudinary storage ----------------
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: "faith-electronics",
     allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
-    transformation: [{ width: 800, height: 800, crop: "limit" }]
+    transformation: [{ width: 800, height: 800, crop: "limit" }],
   },
 });
 
@@ -86,15 +93,16 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
 });
 
-// Image upload endpoint
+// ---------------- Routes ----------------
+
+// Image upload endpoint (returns Cloudinary URLs)
 app.post("/api/upload", upload.array("images", 5), (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: "No files uploaded" });
     }
 
-    const filePaths = req.files.map((file) => file.path);
-
+    const filePaths = req.files.map((file) => file.path); // Cloudinary URLs
     res.json({ urls: filePaths });
   } catch (error) {
     console.error("Upload error:", error);
@@ -102,7 +110,7 @@ app.post("/api/upload", upload.array("images", 5), (req, res) => {
   }
 });
 
-// Catch multer errors
+// Multer error handler
 app.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {
     return res.status(400).json({ error: error.message });
@@ -159,6 +167,62 @@ app.delete("/api/products/:id", async (req, res) => {
   }
 });
 
+// ------------- TEMP: fix old /uploads URLs -------------
+/**
+ * IMPORTANT:
+ * 1. Create Cloudinary URLs for each product image (by re-uploading them),
+ *    then build a mapping from old filename -> Cloudinary URL.
+ * 2. This endpoint will run ONCE to update MongoDB.
+ */
+app.post("/api/fix-image-urls", async (req, res) => {
+  try {
+    const uploadsPrefix =
+      "https://electronics-shop-api-id3m.onrender.com/uploads/";
+
+    // Map old filenames to the correct Cloudinary URLs
+    // Example (you must fill this from your Cloudinary dashboard):
+    const filenameToCloudinary = {
+      // "1766649338792-1001533862.jpg":
+      //   "https://res.cloudinary.com/YOUR_CLOUD_NAME/image/upload/v.../dell-xp360.jpg",
+      // "1766649367835-1001533869.jpg":
+      //   "https://res.cloudinary.com/YOUR_CLOUD_NAME/image/upload/v.../hp-elitebook.jpg",
+      // ...
+    };
+
+    const products = await Product.find({
+      imageUrl: { $regex: "^" + uploadsPrefix },
+    });
+
+    let updatedCount = 0;
+
+    for (const product of products) {
+      const fileName = product.imageUrl.replace(uploadsPrefix, "").trim();
+      const newUrl = filenameToCloudinary[fileName];
+
+      if (!newUrl) {
+        // Skip if no mapping yet
+        console.warn("No Cloudinary URL mapping for", fileName);
+        continue;
+      }
+
+      product.imageUrl = newUrl;
+      await product.save();
+      updatedCount++;
+    }
+
+    res.json({
+      totalWithUploads: products.length,
+      updated: updatedCount,
+      message:
+        "Fill filenameToCloudinary mapping with real Cloudinary URLs, then call this endpoint once.",
+    });
+  } catch (err) {
+    console.error("fix-image-urls error:", err);
+    res.status(500).json({ error: "Failed to fix image URLs" });
+  }
+});
+
+// ---------------- Start server ----------------
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`BASE_URL: ${BASE_URL}`);
