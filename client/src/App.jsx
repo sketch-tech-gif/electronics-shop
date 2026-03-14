@@ -4,10 +4,10 @@ import Cart from "./components/Cart";
 import ProductDetail from "./components/ProductDetail";
 import "./App.css";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://faith-electronics.onrender.com/api/products";
-
-// Cloudinary placeholder (used if product has no image)
-const PLACEHOLDER_IMAGE = "https://res.cloudinary.com/dr2u0jpvn/image/upload/v1773492892/placeholder_a1dh9w.jpg";
+// ✅ Fixed API URL for Render deployment
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://electronics-shop-api-id3m.onrender.com/api/products";
 
 function App() {
   const [products, setProducts] = useState([]);
@@ -18,6 +18,7 @@ function App() {
 
   const CONTACT_PHONE = "+254745909218";
   const WHATSAPP_NUMBER = "+254745909218";
+  const SALE_PRICE = null;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("All");
@@ -36,12 +37,7 @@ function App() {
     try {
       const res = await fetch(API_URL);
       const data = await res.json();
-      // Ensure every product has an image (fallback to placeholder)
-      const productsWithImages = data.map(p => ({
-        ...p,
-        imageUrl: p.imageUrl || PLACEHOLDER_IMAGE,
-      }));
-      setProducts(productsWithImages);
+      setProducts(data);
     } catch (err) {
       console.error("Fetch products error:", err);
     } finally {
@@ -90,7 +86,7 @@ function App() {
     <div className="app">
       <header className="header">
         <div className="header-content">
-          <h1 className="header-title">Sketch Tech Electronics</h1>
+          <h1 className="header-title">sketch tech ecommerce</h1>
         </div>
       </header>
 
@@ -107,24 +103,18 @@ function App() {
               placeholder="Search products..."
               className="search-input"
               value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                if (e.target.value) setShowFilterSidebar(true);
-              }}
+              onChange={(e) => { setSearchTerm(e.target.value); if (e.target.value) setShowFilterSidebar(true); }}
             />
             {searchTerm && (
-              <button
-                className="clear-search"
-                onClick={() => {
-                  setSearchTerm("");
-                  setShowFilterSidebar(false);
-                  setFilterCategory("All");
-                  setFilterBrand("All");
-                  setFilterPriceMin(0);
-                  setFilterPriceMax(10000000);
-                  setFilterInStock(false);
-                }}
-              >
+              <button className="clear-search" onClick={() => {
+                setSearchTerm("");
+                setShowFilterSidebar(false);
+                setFilterCategory("All");
+                setFilterBrand("All");
+                setFilterPriceMin(0);
+                setFilterPriceMax(10000000);
+                setFilterInStock(false);
+              }}>
                 ✕ Clear
               </button>
             )}
@@ -139,18 +129,13 @@ function App() {
       {showCart ? (
         <Cart cart={cart} onRemove={removeFromCart} onUpdateQuantity={updateQuantity} onClose={() => setShowCart(false)} />
       ) : selectedProduct ? (
-        <ProductDetail
-          product={selectedProduct}
-          allProducts={products}
-          onAddToCart={(p, qty) => addToCart(p, qty)}
-          onClose={() => setSelectedProduct(null)}
-        />
+        <ProductDetail product={selectedProduct} allProducts={products} onAddToCart={(p, qty) => addToCart(p, qty)} onClose={() => setSelectedProduct(null)} />
       ) : (
         <main className="main-content">
           <div className="products-section">
             {showFilterSidebar && searchTerm && (
               <aside className="filter-sidebar">
-                {/* Filters UI */}
+                {/* Filters UI stays the same */}
               </aside>
             )}
 
@@ -164,6 +149,7 @@ function App() {
                   onViewDetails={(p) => setSelectedProduct(p)}
                   contactPhone={CONTACT_PHONE}
                   whatsappNumber={WHATSAPP_NUMBER}
+                  salePrice={SALE_PRICE}
                 />
               ) : (
                 <div className="no-results">
@@ -176,7 +162,7 @@ function App() {
       )}
 
       <footer className="footer">
-        <p>&copy; Sketch Tech Electronics. All rights reserved.</p>
+        <p>&copy;sketch tech electronics. All rights reserved.</p>
       </footer>
     </div>
   );
