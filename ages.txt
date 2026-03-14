@@ -1,0 +1,9 @@
+5,child
+7,child
+56,elder
+6,child
+45,elder
+3,child
+0,child
+9,child
+98,elder

@@ -8,9 +8,7 @@ require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-
-const BASE_URL =
-  process.env.BASE_URL || "https://electronics-shop-api-id3m.onrender.com";
+const BASE_URL = process.env.BASE_URL || "https://electronics-shop-api-id3m.onrender.com";
 
 // ---------------- Cloudinary config ----------------
 cloudinary.config({
@@ -20,65 +18,49 @@ cloudinary.config({
 });
 
 // ---------------- Middleware ----------------
-app.use(
-  cors({
-    origin: [
-      "https://faith-electronics.onrender.com",
-      "https://faith-electronics-admin.onrender.com",
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "http://localhost:3000",
-    ],
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: "*"
+}));
+
 app.use(express.json());
 
 // Health check
 app.get("/", (req, res) => {
-  res.send("Electronics Shop API is running");
+  res.json({ message: "Electronics Shop API is running ✅" });
 });
 
-// ---------------- MongoDB ----------------
-const MONGO_URI = process.env.MONGO_URI;
+// ---------------- MongoDB Connection ----------------
+const connectDB = async () => {
+  try {
+    if (!process.env.MONGO_URI) {
+      throw new Error("MONGO_URI not set in .env");
+    }
 
-if (!MONGO_URI) {
-  console.error("MONGO_URI is not set in environment variables");
-} else {
-  mongoose
-    .connect(MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 10000,
-    })
-    .then(() => console.log("MongoDB connected"))
-    .catch((err) => {
-      console.error("MongoDB connection error:", err.message);
-    });
-}
-
-// ---------------- Product model ----------------
-const productSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true, trim: true },
-    sku: { type: String, required: true, trim: true },
-    price: { type: Number, required: true, min: 0 },
-    category: { type: String, required: true, trim: true },
-    brand: { type: String, trim: true },
-    description: { type: String, trim: true },
-    specs: { type: String, trim: true },
-    imageUrl: { type: String, trim: true },
-    salePrice: { type: Number, min: 0, default: null },
-    inStock: { type: Boolean, default: true },
-  },
-  {
-    timestamps: true,
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("✅ MongoDB Connected!");
+  } catch (error) {
+    console.error("❌ MongoDB Connection FAILED:", error.message);
+    process.exit(1);
   }
-);
+};
+
+// ---------------- Product Model ----------------
+const productSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
+  sku: { type: String, required: true, trim: true },
+  price: { type: Number, required: true, min: 0 },
+  category: { type: String, required: true, trim: true },
+  brand: { type: String, trim: true },
+  description: { type: String, trim: true },
+  specs: { type: String, trim: true },
+  imageUrl: { type: String, trim: true },
+  salePrice: { type: Number, min: 0, default: null },
+  inStock: { type: Boolean, default: true },
+}, { timestamps: true });
 
 const Product = mongoose.model("Product", productSchema);
 
-// ---------------- Multer + Cloudinary storage ----------------
+// ---------------- Cloudinary Storage ----------------
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -90,27 +72,25 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-// ---------------- Routes ----------------
-
-// Image upload endpoint (returns Cloudinary URLs)
+// ---------------- API ROUTES ----------------
 app.post("/api/upload", upload.array("images", 5), (req, res) => {
   try {
-    if (!req.files || req.files.length === 0) {
+    if (!req.files?.length) {
       return res.status(400).json({ error: "No files uploaded" });
     }
 
-    const filePaths = req.files.map((file) => file.path); // Cloudinary URLs
-    res.json({ urls: filePaths });
+    const urls = req.files.map(file => file.path);
+    res.json({ urls });
   } catch (error) {
     console.error("Upload error:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Multer error handler
+// Multer error middleware
 app.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {
     return res.status(400).json({ error: error.message });
@@ -118,112 +98,61 @@ app.use((error, req, res, next) => {
   next(error);
 });
 
-// Get all products
+// ---------------- PRODUCTS ROUTES ----------------
 app.get("/api/products", async (req, res) => {
   try {
-    const products = await Product.find();
+    const products = await Product.find().lean();
     res.json(products);
-  } catch (err) {
-    console.error("Get products error:", err);
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    console.error("Products error:", error);
+    res.status(500).json({ error: "Failed to fetch products" });
   }
 });
 
-// Add new product
 app.post("/api/products", async (req, res) => {
   try {
-    const newProduct = new Product(req.body);
-    const savedProduct = await newProduct.save();
-    res.status(201).json(savedProduct);
-  } catch (err) {
-    console.error("Add product error:", err);
-    res.status(400).json({ error: err.message });
+    const product = new Product(req.body);
+    const saved = await product.save();
+    res.status(201).json(saved);
+  } catch (error) {
+    console.error("Create error:", error);
+    res.status(400).json({ error: error.message });
   }
 });
 
-// Update product
 app.put("/api/products/:id", async (req, res) => {
   try {
-    const updatedProduct = await Product.findByIdAndUpdate(
+    const product = await Product.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true }
     );
-    res.json(updatedProduct);
-  } catch (err) {
-    console.error("Update product error:", err);
-    res.status(400).json({ error: err.message });
+
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    res.json(product);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 });
 
-// Delete product
 app.delete("/api/products/:id", async (req, res) => {
   try {
     await Product.findByIdAndDelete(req.params.id);
     res.json({ message: "Product deleted" });
-  } catch (err) {
-    console.error("Delete product error:", err);
-    res.status(500).json({ error: err.message });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
-// ------------- TEMP: fix old /uploads URLs -------------
-/**
- * IMPORTANT:
- * 1. Create Cloudinary URLs for each product image (by re-uploading them),
- *    then build a mapping from old filename -> Cloudinary URL.
- * 2. This endpoint will run ONCE to update MongoDB.
- */
-app.post("/api/fix-image-urls", async (req, res) => {
-  try {
-    const uploadsPrefix =
-      "https://electronics-shop-api-id3m.onrender.com/uploads/";
-
-    // Map old filenames to the correct Cloudinary URLs
-    // Example (you must fill this from your Cloudinary dashboard):
-    const filenameToCloudinary = {
-      // "1766649338792-1001533862.jpg":
-      //   "https://res.cloudinary.com/YOUR_CLOUD_NAME/image/upload/v.../dell-xp360.jpg",
-      // "1766649367835-1001533869.jpg":
-      //   "https://res.cloudinary.com/YOUR_CLOUD_NAME/image/upload/v.../hp-elitebook.jpg",
-      // ...
-    };
-
-    const products = await Product.find({
-      imageUrl: { $regex: "^" + uploadsPrefix },
-    });
-
-    let updatedCount = 0;
-
-    for (const product of products) {
-      const fileName = product.imageUrl.replace(uploadsPrefix, "").trim();
-      const newUrl = filenameToCloudinary[fileName];
-
-      if (!newUrl) {
-        // Skip if no mapping yet
-        console.warn("No Cloudinary URL mapping for", fileName);
-        continue;
-      }
-
-      product.imageUrl = newUrl;
-      await product.save();
-      updatedCount++;
-    }
-
-    res.json({
-      totalWithUploads: products.length,
-      updated: updatedCount,
-      message:
-        "Fill filenameToCloudinary mapping with real Cloudinary URLs, then call this endpoint once.",
-    });
-  } catch (err) {
-    console.error("fix-image-urls error:", err);
-    res.status(500).json({ error: "Failed to fix image URLs" });
-  }
-});
-
-// ---------------- Start server ----------------
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`BASE_URL: ${BASE_URL}`);
+// ---------------- START SERVER ----------------
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🌐 API URL: ${BASE_URL}/api/products`);
+  });
+}).catch((error) => {
+  console.error("Server startup failed:", error);
 });

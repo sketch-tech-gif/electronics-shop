@@ -9,15 +9,14 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Base URL for this API (used when building full image URLs)
-const BASE_URL =
-  process.env.BASE_URL || "https://electronics-shop-api-id3m.onrender.com";
+// Base URL for this API
+const BASE_URL = 'http://localhost:5000';
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// Simple health route (so / works on Render)
+// Simple health route
 app.get("/", (req, res) => {
   res.send("Electronics Shop API is running");
 });
@@ -88,7 +87,6 @@ app.post("/api/upload", upload.array("images", 5), (req, res) => {
       return res.status(400).json({ error: "No files uploaded" });
     }
 
-    // Build full HTTPS URLs for each uploaded file
     const filePaths = req.files.map(
       (file) => `${BASE_URL}/uploads/${file.filename}`
     );
@@ -100,10 +98,9 @@ app.post("/api/upload", upload.array("images", 5), (req, res) => {
   }
 });
 
-// FIX IMAGE URLS ROUTE - FIXES localhost references in DB
+// Fix image URLs in DB (if still using localhost)
 app.post("/api/fix-image-urls", async (req, res) => {
   try {
-    // Find products where imageUrl still has localhost
     const products = await Product.find({ imageUrl: /localhost/ });
 
     let updated = 0;
@@ -130,7 +127,7 @@ app.post("/api/fix-image-urls", async (req, res) => {
   }
 });
 
-// Get all products - fix image URLs on the fly
+// Get all products
 app.get("/api/products", async (req, res) => {
   try {
     const products = await Product.find();
@@ -139,7 +136,6 @@ app.get("/api/products", async (req, res) => {
       const productObj = product.toObject();
 
       if (productObj.imageUrl) {
-        // If imageUrl is just a filename or relative path, prepend BASE_URL
         if (!productObj.imageUrl.startsWith("http")) {
           productObj.imageUrl = `${BASE_URL}/uploads/${productObj.imageUrl}`;
         }
@@ -201,6 +197,7 @@ app.use((error, req, res, next) => {
   next(error);
 });
 
+// Start server
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`BASE_URL: ${BASE_URL}`);
