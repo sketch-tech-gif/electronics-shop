@@ -8,7 +8,7 @@ require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const BASE_URL = process.env.BASE_URL || "https://electronics-shop-api-id3m.onrender.com";
+const BASE_URL = process.env.BASE_URL || "https://faith-electronics.onrender.com";
 
 // ---------------- Cloudinary config ----------------
 cloudinary.config({
@@ -18,24 +18,21 @@ cloudinary.config({
 });
 
 // ---------------- Middleware ----------------
-app.use(cors({
-  origin: "*"
-}));
-
+app.use(cors({ origin: "*", credentials: true }));
 app.use(express.json());
 
-// Health check
+// Serve static uploads folder (if needed)
+app.use("/uploads", express.static("uploads"));
+
+// ---------------- Health Check ----------------
 app.get("/", (req, res) => {
-  res.json({ message: "Electronics Shop API is running ✅" });
+  res.json({ message: "Electronics Shop API running ✅" });
 });
 
 // ---------------- MongoDB Connection ----------------
 const connectDB = async () => {
   try {
-    if (!process.env.MONGO_URI) {
-      throw new Error("MONGO_URI not set in .env");
-    }
-
+    if (!process.env.MONGO_URI) throw new Error("MONGO_URI not set in .env");
     await mongoose.connect(process.env.MONGO_URI);
     console.log("✅ MongoDB Connected!");
   } catch (error) {
@@ -75,13 +72,12 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-// ---------------- API ROUTES ----------------
+// ---------------- API Routes ----------------
+
+// Upload product images
 app.post("/api/upload", upload.array("images", 5), (req, res) => {
   try {
-    if (!req.files?.length) {
-      return res.status(400).json({ error: "No files uploaded" });
-    }
-
+    if (!req.files?.length) return res.status(400).json({ error: "No files uploaded" });
     const urls = req.files.map(file => file.path);
     res.json({ urls });
   } catch (error) {
@@ -90,19 +86,19 @@ app.post("/api/upload", upload.array("images", 5), (req, res) => {
   }
 });
 
-// Multer error middleware
-app.use((error, req, res, next) => {
-  if (error instanceof multer.MulterError) {
-    return res.status(400).json({ error: error.message });
-  }
-  next(error);
-});
-
-// ---------------- PRODUCTS ROUTES ----------------
+// Products CRUD
 app.get("/api/products", async (req, res) => {
   try {
     const products = await Product.find().lean();
-    res.json(products);
+
+    const placeholder = "https://res.cloudinary.com/faith-electronics/image/upload/v1689999999/faith-electronics/placeholder.png";
+
+    const productsWithImages = products.map(p => ({
+      ...p,
+      imageUrl: p.imageUrl || placeholder
+    }));
+
+    res.json(productsWithImages);
   } catch (error) {
     console.error("Products error:", error);
     res.status(500).json({ error: "Failed to fetch products" });
@@ -122,16 +118,8 @@ app.post("/api/products", async (req, res) => {
 
 app.put("/api/products/:id", async (req, res) => {
   try {
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
-
-    if (!product) {
-      return res.status(404).json({ error: "Product not found" });
-    }
-
+    const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!product) return res.status(404).json({ error: "Product not found" });
     res.json(product);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -149,9 +137,9 @@ app.delete("/api/products/:id", async (req, res) => {
 
 // ---------------- START SERVER ----------------
 connectDB().then(() => {
-  app.listen(PORT, () => {
+  app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`🌐 API URL: ${BASE_URL}/api/products`);
+    console.log(`📍 BASE_URL: ${BASE_URL}`);
   });
 }).catch((error) => {
   console.error("Server startup failed:", error);

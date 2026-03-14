@@ -1,171 +1,146 @@
-import { useEffect, useState } from "react";
-import ProductList from "./components/ProductList";
-import Cart from "./components/Cart";
-import ProductDetail from "./components/ProductDetail";
-import "./App.css";
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const multer = require("multer");
+const cloudinary = require("cloudinary").v2;
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+require("dotenv").config();
 
-// ✅ Fixed API URL for Render deployment
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  "https://electronics-shop-api-id3m.onrender.com/api/products";
+const app = express();
+const PORT = process.env.PORT || 5000;
+const BASE_URL = process.env.BASE_URL || "https://faith-electronics.onrender.com";
 
-function App() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [cart, setCart] = useState([]);
-  const [showCart, setShowCart] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
+// ---------------- Cloudinary config ----------------
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-  const CONTACT_PHONE = "+254745909218";
-  const WHATSAPP_NUMBER = "+254745909218";
-  const SALE_PRICE = null;
+// ---------------- Middleware ----------------
+app.use(cors({ origin: "*", credentials: true }));
+app.use(express.json());
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategory, setFilterCategory] = useState("All");
-  const [filterBrand, setFilterBrand] = useState("All");
-  const [filterPriceMin, setFilterPriceMin] = useState(0);
-  const [filterPriceMax, setFilterPriceMax] = useState(10000000);
-  const [filterInStock, setFilterInStock] = useState(false);
-  const [sortBy, setSortBy] = useState("name");
-  const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+// Serve static uploads folder (if needed)
+app.use("/uploads", express.static("uploads"));
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
+// ---------------- Health Check ----------------
+app.get("/", (req, res) => {
+  res.json({ message: "Electronics Shop API running ✅" });
+});
 
-  const fetchProducts = async () => {
-    try {
-      const res = await fetch(API_URL);
-      const data = await res.json();
-      setProducts(data);
-    } catch (err) {
-      console.error("Fetch products error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+// ---------------- MongoDB Connection ----------------
+const connectDB = async () => {
+  try {
+    if (!process.env.MONGO_URI) throw new Error("MONGO_URI not set in .env");
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("✅ MongoDB Connected!");
+  } catch (error) {
+    console.error("❌ MongoDB Connection FAILED:", error.message);
+    process.exit(1);
+  }
+};
 
-  const categories = ["All", ...new Set(products.map((p) => p.category))];
-  const brands = ["All", ...new Set(products.map((p) => p.brand).filter(Boolean))];
+// ---------------- Product Model ----------------
+const productSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
+  sku: { type: String, required: true, trim: true },
+  price: { type: Number, required: true, min: 0 },
+  category: { type: String, required: true, trim: true },
+  brand: { type: String, trim: true },
+  description: { type: String, trim: true },
+  specs: { type: String, trim: true },
+  imageUrl: { type: String, trim: true },
+  salePrice: { type: Number, min: 0, default: null },
+  inStock: { type: Boolean, default: true },
+}, { timestamps: true });
 
-  const filteredProducts = products
-    .filter((p) => {
-      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = filterCategory === "All" || p.category === filterCategory;
-      const matchesBrand = filterBrand === "All" || p.brand === filterBrand;
-      const matchesPrice = p.price >= filterPriceMin && p.price <= filterPriceMax;
-      const matchesStock = !filterInStock || p.inStock;
-      return matchesSearch && matchesCategory && matchesBrand && matchesPrice && matchesStock;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "price-low": return a.price - b.price;
-        case "price-high": return b.price - a.price;
-        case "name":
-        default: return a.name.localeCompare(b.name);
-      }
-    });
+const Product = mongoose.model("Product", productSchema);
 
-  const addToCart = (product, quantity = 1) => {
-    const existingItem = cart.find((item) => item._id === product._id);
-    if (existingItem) {
-      setCart(cart.map((item) => item._id === product._id ? { ...item, quantity: item.quantity + quantity } : item));
-    } else {
-      setCart([...cart, { ...product, quantity }]);
-    }
-  };
+// ---------------- Cloudinary Storage ----------------
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "faith-electronics",
+    allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
+    transformation: [{ width: 800, height: 800, crop: "limit" }],
+  },
+});
 
-  const removeFromCart = (productId) => setCart(cart.filter((item) => item._id !== productId));
-  const updateQuantity = (productId, quantity) => {
-    if (quantity <= 0) removeFromCart(productId);
-    else setCart(cart.map((item) => item._id === productId ? { ...item, quantity } : item));
-  };
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
 
-  return (
-    <div className="app">
-      <header className="header">
-        <div className="header-content">
-          <h1 className="header-title">sketch tech ecommerce</h1>
-        </div>
-      </header>
+// ---------------- API Routes ----------------
 
-      <div className="hero">
-        <div className="hero-content">
-          <div className="hero-left">
-            <h2>Top Quality products and services You Can Trust</h2>
-            <p>Fast delivery within Nairobi • Order via WhatsApp or call to reserve</p>
-          </div>
+// Upload product images
+app.post("/api/upload", upload.array("images", 5), (req, res) => {
+  try {
+    if (!req.files?.length) return res.status(400).json({ error: "No files uploaded" });
+    const urls = req.files.map(file => file.path);
+    res.json({ urls });
+  } catch (error) {
+    console.error("Upload error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
-          <div className="search-bar">
-            <input
-              type="text"
-              placeholder="Search products..."
-              className="search-input"
-              value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); if (e.target.value) setShowFilterSidebar(true); }}
-            />
-            {searchTerm && (
-              <button className="clear-search" onClick={() => {
-                setSearchTerm("");
-                setShowFilterSidebar(false);
-                setFilterCategory("All");
-                setFilterBrand("All");
-                setFilterPriceMin(0);
-                setFilterPriceMax(10000000);
-                setFilterInStock(false);
-              }}>
-                ✕ Clear
-              </button>
-            )}
-          </div>
+// Products CRUD
+app.get("/api/products", async (req, res) => {
+  try {
+    const products = await Product.find().lean();
 
-          <div className="hero-actions">
-            <button className="cart-btn" onClick={() => setShowCart(!showCart)}>🛒 Cart ({cartCount})</button>
-          </div>
-        </div>
-      </div>
+    const placeholder = "https://res.cloudinary.com/faith-electronics/image/upload/v1689999999/faith-electronics/placeholder.png";
 
-      {showCart ? (
-        <Cart cart={cart} onRemove={removeFromCart} onUpdateQuantity={updateQuantity} onClose={() => setShowCart(false)} />
-      ) : selectedProduct ? (
-        <ProductDetail product={selectedProduct} allProducts={products} onAddToCart={(p, qty) => addToCart(p, qty)} onClose={() => setSelectedProduct(null)} />
-      ) : (
-        <main className="main-content">
-          <div className="products-section">
-            {showFilterSidebar && searchTerm && (
-              <aside className="filter-sidebar">
-                {/* Filters UI stays the same */}
-              </aside>
-            )}
+    const productsWithImages = products.map(p => ({
+      ...p,
+      imageUrl: p.imageUrl || placeholder
+    }));
 
-            <div className={`products-content ${showFilterSidebar && searchTerm ? "with-sidebar" : ""}`}>
-              {loading ? (
-                <div className="loading">Loading products...</div>
-              ) : filteredProducts.length > 0 ? (
-                <ProductList
-                  products={filteredProducts}
-                  onAddToCart={addToCart}
-                  onViewDetails={(p) => setSelectedProduct(p)}
-                  contactPhone={CONTACT_PHONE}
-                  whatsappNumber={WHATSAPP_NUMBER}
-                  salePrice={SALE_PRICE}
-                />
-              ) : (
-                <div className="no-results">
-                  <p>No products found matching your search.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </main>
-      )}
+    res.json(productsWithImages);
+  } catch (error) {
+    console.error("Products error:", error);
+    res.status(500).json({ error: "Failed to fetch products" });
+  }
+});
 
-      <footer className="footer">
-        <p>&copy;sketch tech electronics. All rights reserved.</p>
-      </footer>
-    </div>
-  );
-}
+app.post("/api/products", async (req, res) => {
+  try {
+    const product = new Product(req.body);
+    const saved = await product.save();
+    res.status(201).json(saved);
+  } catch (error) {
+    console.error("Create error:", error);
+    res.status(400).json({ error: error.message });
+  }
+});
 
-export default App;
+app.put("/api/products/:id", async (req, res) => {
+  try {
+    const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!product) return res.status(404).json({ error: "Product not found" });
+    res.json(product);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete("/api/products/:id", async (req, res) => {
+  try {
+    await Product.findByIdAndDelete(req.params.id);
+    res.json({ message: "Product deleted" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ---------------- START SERVER ----------------
+connectDB().then(() => {
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📍 BASE_URL: ${BASE_URL}`);
+  });
+}).catch((error) => {
+  console.error("Server startup failed:", error);
+});
