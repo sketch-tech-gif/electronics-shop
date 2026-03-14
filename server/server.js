@@ -21,7 +21,7 @@ cloudinary.config({
 app.use(cors({ origin: "*", credentials: true }));
 app.use(express.json());
 
-// Serve static uploads folder (if needed)
+// Serve local uploads folder if needed
 app.use("/uploads", express.static("uploads"));
 
 // ---------------- Health Check ----------------
@@ -42,18 +42,21 @@ const connectDB = async () => {
 };
 
 // ---------------- Product Model ----------------
-const productSchema = new mongoose.Schema({
-  name: { type: String, required: true, trim: true },
-  sku: { type: String, required: true, trim: true },
-  price: { type: Number, required: true, min: 0 },
-  category: { type: String, required: true, trim: true },
-  brand: { type: String, trim: true },
-  description: { type: String, trim: true },
-  specs: { type: String, trim: true },
-  imageUrl: { type: String, trim: true },
-  salePrice: { type: Number, min: 0, default: null },
-  inStock: { type: Boolean, default: true },
-}, { timestamps: true });
+const productSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    sku: { type: String, required: true, trim: true },
+    price: { type: Number, required: true, min: 0 },
+    category: { type: String, required: true, trim: true },
+    brand: { type: String, trim: true },
+    description: { type: String, trim: true },
+    specs: { type: String, trim: true },
+    imageUrl: { type: String, trim: true },
+    salePrice: { type: Number, min: 0, default: null },
+    inStock: { type: Boolean, default: true },
+  },
+  { timestamps: true }
+);
 
 const Product = mongoose.model("Product", productSchema);
 
@@ -78,7 +81,7 @@ const upload = multer({
 app.post("/api/upload", upload.array("images", 5), (req, res) => {
   try {
     if (!req.files?.length) return res.status(400).json({ error: "No files uploaded" });
-    const urls = req.files.map(file => file.path);
+    const urls = req.files.map((file) => file.path);
     res.json({ urls });
   } catch (error) {
     console.error("Upload error:", error);
@@ -86,16 +89,18 @@ app.post("/api/upload", upload.array("images", 5), (req, res) => {
   }
 });
 
-// Products CRUD
+// Get all products
 app.get("/api/products", async (req, res) => {
   try {
     const products = await Product.find().lean();
 
-    const placeholder = "https://res.cloudinary.com/faith-electronics/image/upload/v1689999999/faith-electronics/placeholder.png";
+    // Placeholder image if product has no image
+    const PLACEHOLDER_IMAGE =
+      "https://res.cloudinary.com/dr2u0jpvn/image/upload/v1773492892/placeholder_a1dh9w.jpg";
 
-    const productsWithImages = products.map(p => ({
+    const productsWithImages = products.map((p) => ({
       ...p,
-      imageUrl: p.imageUrl || placeholder
+      imageUrl: p.imageUrl || PLACEHOLDER_IMAGE,
     }));
 
     res.json(productsWithImages);
@@ -105,6 +110,7 @@ app.get("/api/products", async (req, res) => {
   }
 });
 
+// Create new product
 app.post("/api/products", async (req, res) => {
   try {
     const product = new Product(req.body);
@@ -116,6 +122,7 @@ app.post("/api/products", async (req, res) => {
   }
 });
 
+// Update product
 app.put("/api/products/:id", async (req, res) => {
   try {
     const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -126,6 +133,7 @@ app.put("/api/products/:id", async (req, res) => {
   }
 });
 
+// Delete product
 app.delete("/api/products/:id", async (req, res) => {
   try {
     await Product.findByIdAndDelete(req.params.id);
