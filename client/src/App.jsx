@@ -7,9 +7,8 @@ import "./App.css";
 // Use deployed backend URL from environment, fallback to localhost for dev
 const API_URL =
   import.meta.env.VITE_API_URL ||
-  "http://localhost:5000/api/products";
+  "http://localhost:5000";
 
-// Cloudinary placeholder
 const PLACEHOLDER_IMAGE =
   "https://res.cloudinary.com/dr2u0jpvn/image/upload/v1773492892/placeholder_a1dh9w.jpg";
 
@@ -39,12 +38,18 @@ function App() {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch(API_URL);
+      const res = await fetch(`${API_URL}/api/products`);  // ✅ FIXED: Added /api/products
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      
+      const response = await res.json();
+
+      // ✅ FIXED: Handle both array AND object responses from backend
+      const productsArray = Array.isArray(response) 
+        ? response 
+        : response.products || response.data || [];
 
       // Replace missing images with Cloudinary placeholder
-      const updated = data.map((p) => ({
+      const updated = productsArray.map((p) => ({
         ...p,
         imageUrl: p.imageUrl || PLACEHOLDER_IMAGE,
       }));
@@ -52,14 +57,14 @@ function App() {
       setProducts(updated);
     } catch (err) {
       console.error("Fetch products error:", err);
-      setProducts([]); // fallback to empty
+      setProducts([]); 
     } finally {
       setLoading(false);
     }
   };
 
-  const categories = ["All", ...new Set(products.map((p) => p.category))];
-  const brands = ["All", ...new Set(products.map((p) => p.brand).filter(Boolean))];
+  const categories = ["All", ...(Array.isArray(products) ? products.map((p) => p.category) : [])];
+  const brands = ["All", ...(Array.isArray(products) ? products.map((p) => p.brand).filter(Boolean) : [])];
 
   const filteredProducts = products
     .filter((p) => {

@@ -90,6 +90,7 @@ app.post("/api/upload", upload.array("images", 5), (req, res) => {
 });
 
 // Get all products
+// GET all products
 app.get("/api/products", async (req, res) => {
   try {
     const products = await Product.find().lean();

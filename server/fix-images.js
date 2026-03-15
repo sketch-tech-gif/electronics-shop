@@ -3,7 +3,10 @@ const fs = require("fs");
 const path = require("path");
 require("dotenv").config();
 
-const BASE_URL = "http://localhost:5000";
+const BASE_URL = process.env.NODE_ENV === "production" 
+  ? "https://faith-electronics.onrender.com" 
+  : "http://localhost:5000";
+
 const uploadsDir = path.join(__dirname, "../uploads");
 
 mongoose.connect(process.env.MONGO_URI)
@@ -32,10 +35,10 @@ async function fixImages() {
 
       const filePath = path.join(uploadsDir, filename);
 
-      // Use placeholder if file missing
+      // FIXED: Use correct placeholder path
       const newUrl = fs.existsSync(filePath)
         ? `${BASE_URL}/uploads/${filename}`
-        : `${BASE_URL}/uploads/placeholder.png`;
+        : "/placeholder.png";  // ← CHANGED THIS LINE
 
       if (product.imageUrl !== newUrl) {
         product.imageUrl = newUrl;
@@ -45,7 +48,7 @@ async function fixImages() {
     }
   }
 
-  console.log(`✅ Finished. Updated ${updated} products with placeholder fallback.`);
+  console.log(`✅ Finished. Updated ${updated} products with correct placeholder.`);
   process.exit(0);
 }
 
