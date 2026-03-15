@@ -20,11 +20,16 @@ function Cart({ cart, onRemove, onUpdateQuantity, onClose }) {
           <div className="cart-items">
             {cart.map((item) => (
               <div key={item._id} className="cart-item">
-                {/* left: (optional) thumbnail placeholder */}
+                {/* FIXED: Always shows image with placeholder fallback */}
                 <div className="cart-item-thumb">
-                  {item.imageUrl && (
-                    <img src={item.imageUrl} alt={item.name} />
-                  )}
+                  <img 
+                    src={item.imageUrl || "/placeholder.png"} 
+                    alt={item.name}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "/placeholder.png";
+                    }}
+                  />
                 </div>
 
                 {/* middle: name + unit price */}
