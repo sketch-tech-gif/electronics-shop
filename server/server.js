@@ -1,6 +1,8 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
@@ -8,28 +10,24 @@ require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const BASE_URL = process.env.BASE_URL || "https://faith-electronics.onrender.com";
+const JWT_SECRET = process.env.JWT_SECRET || "techstore_secret_key_2024";
 
-// ---------------- Cloudinary config ----------------
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// ---------------- Middleware ----------------
 app.use(cors({ origin: "*", credentials: true }));
 app.use(express.json());
-
-// Serve local uploads folder if needed
 app.use("/uploads", express.static("uploads"));
 
-// ---------------- Health Check ----------------
+// ── Health Check ──────────────────────────────────────────────────────────────
 app.get("/", (req, res) => {
-  res.json({ message: "Electronics Shop API running ✅" });
+  res.json({ message: "TechStore API running ✅" });
 });
 
-// ---------------- MongoDB Connection ----------------
+// ── MongoDB ───────────────────────────────────────────────────────────────────
 const connectDB = async () => {
   try {
     if (!process.env.MONGO_URI) throw new Error("MONGO_URI not set in .env");
@@ -41,28 +39,133 @@ const connectDB = async () => {
   }
 };
 
-// ---------------- Product Model ----------------
-const productSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true, trim: true },
-    sku: { type: String, required: true, trim: true },
-    price: { type: Number, required: true, min: 0 },
-    category: { type: String, required: true, trim: true },
-    brand: { type: String, trim: true },
-    description: { type: String, trim: true },
-    specs: { type: String, trim: true },
-    imageUrl: { type: String, trim: true },
-    salePrice: { type: Number, min: 0, default: null },
-    inStock: { type: Boolean, default: true },
-  },
-  { timestamps: true }
-);
+// ── User Model ────────────────────────────────────────────────────────────────
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  phone: { type: String, trim: true, default: "" },
+  password: { type: String, required: true },
+}, { timestamps: true });
+
+const User = mongoose.model("User", userSchema);
+
+// ── Product Model ─────────────────────────────────────────────────────────────
+const productSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
+  sku: { type: String, required: true, trim: true },
+  price: { type: Number, required: true, min: 0 },
+  category: { type: String, required: true, trim: true },
+  brand: { type: String, trim: true },
+  description: { type: String, trim: true },
+  specs: { type: String, trim: true },
+  imageUrl: { type: String, trim: true },
+  salePrice: { type: Number, min: 0, default: null },
+  inStock: { type: Boolean, default: true },
+}, { timestamps: true });
 
 const Product = mongoose.model("Product", productSchema);
 
-// ---------------- Cloudinary Storage ----------------
+// ── Auth Middleware ───────────────────────────────────────────────────────────
+const authMiddleware = (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ error: "No token provided" });
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    res.status(401).json({ error: "Invalid token" });
+  }
+};
+
+// ── Auth Routes ───────────────────────────────────────────────────────────────
+
+// Register
+app.post("/api/auth/register", async (req, res) => {
+  try {
+    const { name, email, phone, password } = req.body;
+
+    if (!name || !email || !password)
+      return res.status(400).json({ error: "Name, email and password are required" });
+
+    if (password.length < 6)
+      return res.status(400).json({ error: "Password must be at least 6 characters" });
+
+    const exists = await User.findOne({ email });
+    if (exists)
+      return res.status(400).json({ error: "An account with this email already exists" });
+
+    const hashed = await bcrypt.hash(password, 12);
+    const user = await User.create({ name, email, phone: phone || "", password: hashed });
+
+    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
+
+    res.status(201).json({
+      token,
+      user: { id: user._id, name: user.name, email: user.email, phone: user.phone },
+    });
+  } catch (error) {
+    console.error("Register error:", error);
+    res.status(500).json({ error: "Registration failed. Please try again." });
+  }
+});
+
+// Login
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password)
+      return res.status(400).json({ error: "Email and password are required" });
+
+    const user = await User.findOne({ email });
+    if (!user)
+      return res.status(401).json({ error: "Invalid email or password" });
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match)
+      return res.status(401).json({ error: "Invalid email or password" });
+
+    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
+
+    res.json({
+      token,
+      user: { id: user._id, name: user.name, email: user.email, phone: user.phone },
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ error: "Login failed. Please try again." });
+  }
+});
+
+// Get current user
+app.get("/api/auth/me", authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json({ user: { id: user._id, name: user.name, email: user.email, phone: user.phone } });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to get user" });
+  }
+});
+
+// Update profile
+app.put("/api/auth/profile", authMiddleware, async (req, res) => {
+  try {
+    const { name, phone } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { name, phone },
+      { new: true }
+    ).select("-password");
+    res.json({ user: { id: user._id, name: user.name, email: user.email, phone: user.phone } });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update profile" });
+  }
+});
+
+// ── Cloudinary Storage ────────────────────────────────────────────────────────
 const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
+  cloudinary,
   params: {
     folder: "faith-electronics",
     allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
@@ -70,60 +173,38 @@ const storage = new CloudinaryStorage({
   },
 });
 
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-});
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
-// ---------------- API Routes ----------------
+// ── Product Routes ────────────────────────────────────────────────────────────
+const PLACEHOLDER = "https://res.cloudinary.com/dr2u0jpvn/image/upload/v1773492892/placeholder_a1dh9w.jpg";
 
-// Upload product images
 app.post("/api/upload", upload.array("images", 5), (req, res) => {
   try {
     if (!req.files?.length) return res.status(400).json({ error: "No files uploaded" });
-    const urls = req.files.map((file) => file.path);
-    res.json({ urls });
+    res.json({ urls: req.files.map(f => f.path) });
   } catch (error) {
-    console.error("Upload error:", error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get all products
-// GET all products
 app.get("/api/products", async (req, res) => {
   try {
     const products = await Product.find().lean();
-
-    // Placeholder image if product has no image
-    const PLACEHOLDER_IMAGE =
-      "https://res.cloudinary.com/dr2u0jpvn/image/upload/v1773492892/placeholder_a1dh9w.jpg";
-
-    const productsWithImages = products.map((p) => ({
-      ...p,
-      imageUrl: p.imageUrl || PLACEHOLDER_IMAGE,
-    }));
-
-    res.json(productsWithImages);
+    res.json(products.map(p => ({ ...p, imageUrl: p.imageUrl || PLACEHOLDER })));
   } catch (error) {
-    console.error("Products error:", error);
     res.status(500).json({ error: "Failed to fetch products" });
   }
 });
 
-// Create new product
 app.post("/api/products", async (req, res) => {
   try {
-    const product = new Product(req.body);
-    const saved = await product.save();
-    res.status(201).json(saved);
+    const product = await new Product(req.body).save();
+    res.status(201).json(product);
   } catch (error) {
-    console.error("Create error:", error);
     res.status(400).json({ error: error.message });
   }
 });
 
-// Update product
 app.put("/api/products/:id", async (req, res) => {
   try {
     const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -134,7 +215,6 @@ app.put("/api/products/:id", async (req, res) => {
   }
 });
 
-// Delete product
 app.delete("/api/products/:id", async (req, res) => {
   try {
     await Product.findByIdAndDelete(req.params.id);
@@ -144,12 +224,9 @@ app.delete("/api/products/:id", async (req, res) => {
   }
 });
 
-// ---------------- START SERVER ----------------
+// ── Start Server ──────────────────────────────────────────────────────────────
 connectDB().then(() => {
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📍 BASE_URL: ${BASE_URL}`);
   });
-}).catch((error) => {
-  console.error("Server startup failed:", error);
 });

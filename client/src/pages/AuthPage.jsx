@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useApp } from "../context/AppContext";
-
+const API = 'https://electronics-shop-api-id3m.onrender.com'
 // Mock user DB
 const MOCK_USERS = [
   { id: 1, name: "Demo User", email: "demo@techstore.com", password: "Demo@123", phone: "+254 700 000 000" },
@@ -84,38 +84,54 @@ export default function AuthPage() {
     return e;
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    const errs = validateLogin();
-    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-    setLoading(true);
-    await new Promise(r => setTimeout(r, 900));
-    const user = MOCK_USERS.find(u => u.email === loginForm.email && u.password === loginForm.password);
-    if (!user) {
-      setErrors({ general: "Invalid email or password. Try demo@techstore.com / Demo@123" });
-      setLoading(false);
-      return;
-    }
-    login({ id: user.id, name: user.name, email: user.email, phone: user.phone });
-    navigate("/");
-    setLoading(false);
-  };
+  const handleLogin = async e => {
+  e.preventDefault()
+  const errs = validateLogin()
+  if (Object.keys(errs).length) { setErrors(errs); return }
+  setLoading(true)
+  try {
+    const res = await fetch(`${API}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: lf.email, password: lf.password }),
+    })
+    const data = await res.json()
+    if (!res.ok) { setErrors({ general: data.error }); setLoading(false); return }
+    localStorage.setItem('token', data.token)
+    login(data.user)
+    navigate('/')
+  } catch {
+    setErrors({ general: 'Network error. Please try again.' })
+  }
+  setLoading(false)
+}
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    const errs = validateRegister();
-    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-    setLoading(true);
-    await new Promise(r => setTimeout(r, 1000));
-    login({
-      id: Date.now(),
-      name: `${registerForm.firstName} ${registerForm.lastName}`,
-      email: registerForm.email,
-      phone: registerForm.phone,
-    });
-    navigate("/");
-    setLoading(false);
-  };
+  const handleRegister = async e => {
+  e.preventDefault()
+  const errs = validateReg()
+  if (Object.keys(errs).length) { setErrors(errs); return }
+  setLoading(true)
+  try {
+    const res = await fetch(`${API}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: `${rf.firstName} ${rf.lastName}`,
+        email: rf.email,
+        phone: rf.phone,
+        password: rf.password,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) { setErrors({ general: data.error }); setLoading(false); return }
+    localStorage.setItem('token', data.token)
+    login(data.user)
+    navigate('/')
+  } catch {
+    setErrors({ general: 'Network error. Please try again.' })
+  }
+  setLoading(false)
+}
 
   const updateLogin = (field) => (e) => {
     setLoginForm(f => ({ ...f, [field]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
