@@ -6,7 +6,11 @@ const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
-require("dotenv").config();
+
+// Only load .env file in development — Render injects env vars directly
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+}
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -24,17 +28,17 @@ app.use("/uploads", express.static("uploads"));
 
 // ── Health Check ──────────────────────────────────────────────────────────────
 app.get("/", (req, res) => {
-  res.json({ message: "TechStore API running ✅" });
+  res.json({ message: "TechStore API running OK" });
 });
 
 // ── MongoDB ───────────────────────────────────────────────────────────────────
 const connectDB = async () => {
   try {
-    if (!process.env.MONGO_URI) throw new Error("MONGO_URI not set in .env");
+    if (!process.env.MONGO_URI) throw new Error("MONGO_URI not set");
     await mongoose.connect(process.env.MONGO_URI);
-    console.log("✅ MongoDB Connected!");
+    console.log("MongoDB Connected!");
   } catch (error) {
-    console.error("❌ MongoDB Connection FAILED:", error.message);
+    console.error("MongoDB Connection FAILED:", error.message);
     process.exit(1);
   }
 };
@@ -78,27 +82,19 @@ const authMiddleware = (req, res, next) => {
 };
 
 // ── Auth Routes ───────────────────────────────────────────────────────────────
-
-// Register
 app.post("/api/auth/register", async (req, res) => {
   try {
     const { name, email, phone, password } = req.body;
-
     if (!name || !email || !password)
       return res.status(400).json({ error: "Name, email and password are required" });
-
     if (password.length < 6)
       return res.status(400).json({ error: "Password must be at least 6 characters" });
-
     const exists = await User.findOne({ email });
     if (exists)
       return res.status(400).json({ error: "An account with this email already exists" });
-
     const hashed = await bcrypt.hash(password, 12);
     const user = await User.create({ name, email, phone: phone || "", password: hashed });
-
     const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
-
     res.status(201).json({
       token,
       user: { id: user._id, name: user.name, email: user.email, phone: user.phone },
@@ -109,24 +105,18 @@ app.post("/api/auth/register", async (req, res) => {
   }
 });
 
-// Login
 app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-
     if (!email || !password)
       return res.status(400).json({ error: "Email and password are required" });
-
     const user = await User.findOne({ email });
     if (!user)
       return res.status(401).json({ error: "Invalid email or password" });
-
     const match = await bcrypt.compare(password, user.password);
     if (!match)
       return res.status(401).json({ error: "Invalid email or password" });
-
     const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
-
     res.json({
       token,
       user: { id: user._id, name: user.name, email: user.email, phone: user.phone },
@@ -137,7 +127,6 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
-// Get current user
 app.get("/api/auth/me", authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
@@ -148,22 +137,17 @@ app.get("/api/auth/me", authMiddleware, async (req, res) => {
   }
 });
 
-// Update profile
 app.put("/api/auth/profile", authMiddleware, async (req, res) => {
   try {
     const { name, phone } = req.body;
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      { name, phone },
-      { new: true }
-    ).select("-password");
+    const user = await User.findByIdAndUpdate(req.user.id, { name, phone }, { new: true }).select("-password");
     res.json({ user: { id: user._id, name: user.name, email: user.email, phone: user.phone } });
   } catch (error) {
     res.status(500).json({ error: "Failed to update profile" });
   }
 });
 
-// ── Cloudinary Storage ────────────────────────────────────────────────────────
+// ── Cloudinary ────────────────────────────────────────────────────────────────
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
@@ -175,7 +159,6 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
-// ── Product Routes ────────────────────────────────────────────────────────────
 const PLACEHOLDER = "https://res.cloudinary.com/dr2u0jpvn/image/upload/v1773492892/placeholder_a1dh9w.jpg";
 
 app.post("/api/upload", upload.array("images", 5), (req, res) => {
@@ -224,9 +207,9 @@ app.delete("/api/products/:id", async (req, res) => {
   }
 });
 
-// ── Start Server ──────────────────────────────────────────────────────────────
+// ── Start ─────────────────────────────────────────────────────────────────────
 connectDB().then(() => {
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`🚀 Server running on port ${PORT}`);
+    console.log("Server running on port " + PORT);
   });
 });
