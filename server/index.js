@@ -10,7 +10,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Base URL for this API
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = 'https://electronics-shop-api-id3m.onrender.com';
 
 // Middleware
 app.use(cors());

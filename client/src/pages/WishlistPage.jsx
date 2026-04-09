@@ -3,6 +3,9 @@ import { Link } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import ProductCard from "../components/ProductCard";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://electronics-shop-api-id3m.onrender.com';
+
+
 export default function WishlistPage() {
   const { wishlist, moveToCart, toggleWishlist } = useApp();
 

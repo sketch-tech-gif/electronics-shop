@@ -22,7 +22,10 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-app.use(cors({ origin: "*", credentials: true }));
+app.use(cors({ 
+  origin: 'https://electronics-shop-api-13smrender.vercel.app',
+  credentials: true 
+}));
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 

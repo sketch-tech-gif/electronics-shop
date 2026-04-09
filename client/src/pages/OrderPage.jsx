@@ -2,6 +2,9 @@
 import { Link } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://electronics-shop-api-id3m.onrender.com';
+
+
 const statusColors = {
   "Processing": "bg-yellow-100 text-yellow-700",
   "Confirmed": "bg-blue-100 text-blue-700",

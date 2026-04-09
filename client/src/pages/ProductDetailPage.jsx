@@ -4,6 +4,9 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { products, mockReviews } from "../data/products";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://electronics-shop-api-id3m.onrender.com';
+
+
 function StarRating({ rating, size = "sm" }) {
   const sizes = { sm: "w-3.5 h-3.5", md: "w-5 h-5" };
   return (

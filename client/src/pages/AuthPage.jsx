@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 
-const API = 'https://electronics-shop-api-id3m.onrender.com'
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://electronics-shop-api-id3m.onrender.com';
+
 
 function PasswordStrength({ password }) {
   if (!password) return null

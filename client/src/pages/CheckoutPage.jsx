@@ -3,6 +3,9 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://electronics-shop-api-id3m.onrender.com';
+
+
 const STEPS = ["Shipping", "Payment", "Confirm"];
 
 export default function CheckoutPage() {

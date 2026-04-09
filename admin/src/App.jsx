@@ -3,7 +3,7 @@ import AdminPanel from "./components/AdminPanel";
 import AdminLogin from "./components/AdminLogin";
 import "./App.css";
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'https://electronics-shop-api-id3m.onrender.com';
 
 function App() {
   const [products, setProducts] = useState([]);
