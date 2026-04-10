@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://electronics-shop-api-id3m.onrender.com';
+const API = 'https://electronics-shop-api-id3m.onrender.com';
 
 
 export default function AccountPage() {

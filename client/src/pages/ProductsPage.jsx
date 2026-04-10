@@ -4,8 +4,7 @@ import { useApp } from "../context/AppContext";
 import { products, CATEGORIES, BRANDS } from "../data/products";
 import ProductCard from "../components/ProductCard";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://electronics-shop-api-id3m.onrender.com';
-
+const API = 'https://electronics-shop-api-id3m.onrender.com';
 
 const SORT_OPTIONS = [
   { value: "default", label: "Featured" },
