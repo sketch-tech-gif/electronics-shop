@@ -1,12 +1,12 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
-// Only load .env in development — Render injects env vars directly
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
@@ -21,92 +21,77 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-import cors from "cors";
-
-app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://sketch-tech-electronics.vercel.app"
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true
-}));
+app.use(cors({ origin: "*", credentials: true }));
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 
-// ── Health Check ──────────────────────────────────────────────────────────────
-app.get("/", (req, res) => {
+app.get("/", function(req, res) {
   res.json({ message: "TechStore API running OK" });
 });
 
-// ── MongoDB ───────────────────────────────────────────────────────────────────
-const connectDB = async () => {
+var connectDB = async function() {
   try {
     if (!process.env.MONGO_URI) throw new Error("MONGO_URI not set");
     await mongoose.connect(process.env.MONGO_URI);
     console.log("MongoDB Connected!");
   } catch (error) {
     console.error("MongoDB Connection FAILED:", error.message);
-    // Don't exit — keep server alive
   }
 };
 
-// ── User Model ────────────────────────────────────────────────────────────────
-const userSchema = new mongoose.Schema({
-  name:     { type: String, required: true, trim: true },
-  email:    { type: String, required: true, unique: true, lowercase: true, trim: true },
-  phone:    { type: String, trim: true, default: "" },
+var userSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  phone: { type: String, trim: true, default: "" },
   password: { type: String, required: true },
 }, { timestamps: true });
 
-const User = mongoose.model("User", userSchema);
+var User = mongoose.model("User", userSchema);
 
-// ── Product Model ─────────────────────────────────────────────────────────────
-const productSchema = new mongoose.Schema({
-  name:        { type: String, required: true, trim: true },
-  sku:         { type: String, required: true, trim: true },
-  price:       { type: Number, required: true, min: 0 },
-  category:    { type: String, required: true, trim: true },
-  brand:       { type: String, trim: true },
+var productSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
+  sku: { type: String, required: true, trim: true },
+  price: { type: Number, required: true, min: 0 },
+  category: { type: String, required: true, trim: true },
+  brand: { type: String, trim: true },
   description: { type: String, trim: true },
-  specs:       { type: String, trim: true },
-  imageUrl:    { type: String, trim: true },
-  salePrice:   { type: Number, min: 0, default: null },
-  inStock:     { type: Boolean, default: true },
+  specs: { type: String, trim: true },
+  imageUrl: { type: String, trim: true },
+  salePrice: { type: Number, min: 0, default: null },
+  inStock: { type: Boolean, default: true },
 }, { timestamps: true });
 
-const Product = mongoose.model("Product", productSchema);
+var Product = mongoose.model("Product", productSchema);
 
-// ── Auth Middleware ───────────────────────────────────────────────────────────
-const authMiddleware = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
+var authMiddleware = function(req, res, next) {
+  var token = req.headers.authorization && req.headers.authorization.split(" ")[1];
   if (!token) return res.status(401).json({ error: "No token provided" });
   try {
     req.user = jwt.verify(token, JWT_SECRET);
     next();
-  } catch {
+  } catch(e) {
     res.status(401).json({ error: "Invalid token" });
   }
 };
 
-// ── Auth Routes ───────────────────────────────────────────────────────────────
-
-// Register
-app.post("/api/auth/register", async (req, res) => {
+app.post("/api/auth/register", async function(req, res) {
   try {
-    const { name, email, phone, password } = req.body;
+    var name = req.body.name;
+    var email = req.body.email;
+    var phone = req.body.phone;
+    var password = req.body.password;
     if (!name || !email || !password)
       return res.status(400).json({ error: "Name, email and password are required" });
     if (password.length < 6)
       return res.status(400).json({ error: "Password must be at least 6 characters" });
-    const exists = await User.findOne({ email });
+    var exists = await User.findOne({ email: email });
     if (exists)
       return res.status(400).json({ error: "An account with this email already exists" });
-    const hashed = await bcrypt.hash(password, 12);
-    const user = await User.create({ name, email, phone: phone || "", password: hashed });
-    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
+    var hashed = await bcrypt.hash(password, 12);
+    var user = await User.create({ name: name, email: email, phone: phone || "", password: hashed });
+    var token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
     res.status(201).json({
-      token,
+      token: token,
       user: { id: user._id, name: user.name, email: user.email, phone: user.phone },
     });
   } catch (error) {
@@ -115,21 +100,21 @@ app.post("/api/auth/register", async (req, res) => {
   }
 });
 
-// Login
-app.post("/api/auth/login", async (req, res) => {
+app.post("/api/auth/login", async function(req, res) {
   try {
-    const { email, password } = req.body;
+    var email = req.body.email;
+    var password = req.body.password;
     if (!email || !password)
       return res.status(400).json({ error: "Email and password are required" });
-    const user = await User.findOne({ email });
+    var user = await User.findOne({ email: email });
     if (!user)
       return res.status(401).json({ error: "Invalid email or password" });
-    const match = await bcrypt.compare(password, user.password);
+    var match = await bcrypt.compare(password, user.password);
     if (!match)
       return res.status(401).json({ error: "Invalid email or password" });
-    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
+    var token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
     res.json({
-      token,
+      token: token,
       user: { id: user._id, name: user.name, email: user.email, phone: user.phone },
     });
   } catch (error) {
@@ -138,10 +123,9 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
-// Get current user
-app.get("/api/auth/me", authMiddleware, async (req, res) => {
+app.get("/api/auth/me", authMiddleware, async function(req, res) {
   try {
-    const user = await User.findById(req.user.id).select("-password");
+    var user = await User.findById(req.user.id).select("-password");
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json({ user: { id: user._id, name: user.name, email: user.email, phone: user.phone } });
   } catch (error) {
@@ -149,12 +133,10 @@ app.get("/api/auth/me", authMiddleware, async (req, res) => {
   }
 });
 
-// Update profile
-app.put("/api/auth/profile", authMiddleware, async (req, res) => {
+app.put("/api/auth/profile", authMiddleware, async function(req, res) {
   try {
-    const { name, phone } = req.body;
-    const user = await User.findByIdAndUpdate(
-      req.user.id, { name, phone }, { new: true }
+    var user = await User.findByIdAndUpdate(
+      req.user.id, { name: req.body.name, phone: req.body.phone }, { new: true }
     ).select("-password");
     res.json({ user: { id: user._id, name: user.name, email: user.email, phone: user.phone } });
   } catch (error) {
@@ -162,9 +144,8 @@ app.put("/api/auth/profile", authMiddleware, async (req, res) => {
   }
 });
 
-// ── Cloudinary ────────────────────────────────────────────────────────────────
-const storage = new CloudinaryStorage({
-  cloudinary,
+var storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
   params: {
     folder: "faith-electronics",
     allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
@@ -172,41 +153,42 @@ const storage = new CloudinaryStorage({
   },
 });
 
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+var upload = multer({ storage: storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
-const PLACEHOLDER = "https://res.cloudinary.com/dr2u0jpvn/image/upload/v1773492892/placeholder_a1dh9w.jpg";
+var PLACEHOLDER = "https://res.cloudinary.com/dr2u0jpvn/image/upload/v1773492892/placeholder_a1dh9w.jpg";
 
-// ── Product Routes ────────────────────────────────────────────────────────────
-app.post("/api/upload", upload.array("images", 5), (req, res) => {
+app.post("/api/upload", upload.array("images", 5), function(req, res) {
   try {
-    if (!req.files?.length) return res.status(400).json({ error: "No files uploaded" });
-    res.json({ urls: req.files.map(f => f.path) });
+    if (!req.files || !req.files.length) return res.status(400).json({ error: "No files uploaded" });
+    res.json({ urls: req.files.map(function(f) { return f.path; }) });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-app.get("/api/products", async (req, res) => {
+app.get("/api/products", async function(req, res) {
   try {
-    const products = await Product.find().lean();
-    res.json(products.map(p => ({ ...p, imageUrl: p.imageUrl || PLACEHOLDER })));
+    var products = await Product.find().lean();
+    res.json(products.map(function(p) {
+      return Object.assign({}, p, { imageUrl: p.imageUrl || PLACEHOLDER });
+    }));
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch products" });
   }
 });
 
-app.post("/api/products", async (req, res) => {
+app.post("/api/products", async function(req, res) {
   try {
-    const product = await new Product(req.body).save();
+    var product = await new Product(req.body).save();
     res.status(201).json(product);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });
 
-app.put("/api/products/:id", async (req, res) => {
+app.put("/api/products/:id", async function(req, res) {
   try {
-    const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    var product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!product) return res.status(404).json({ error: "Product not found" });
     res.json(product);
   } catch (error) {
@@ -214,7 +196,7 @@ app.put("/api/products/:id", async (req, res) => {
   }
 });
 
-app.delete("/api/products/:id", async (req, res) => {
+app.delete("/api/products/:id", async function(req, res) {
   try {
     await Product.findByIdAndDelete(req.params.id);
     res.json({ message: "Product deleted" });
@@ -223,8 +205,8 @@ app.delete("/api/products/:id", async (req, res) => {
   }
 });
 
-// ── Start Server ──────────────────────────────────────────────────────────────
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, "0.0.0.0", function() {
   console.log("Server running on port " + PORT);
 });
+
 connectDB();

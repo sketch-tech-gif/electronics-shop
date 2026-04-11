@@ -1,176 +1,179 @@
-import "./ProductDetail.css";
-import { useState } from "react";
+// FILE: src/components/ProductList.jsx
+import { useState, useMemo } from "react";
+import { useApp } from "../context/AppContext";
+import { products, CATEGORIES } from "../data/products";
+import ProductCard from "./ProductCard";
+import { SkeletonCard } from "./ui/Skeleton";
 
-function ProductDetail({ product, allProducts = [], onAddToCart, onClose }) {
-  if (!product) return null;
+const SORT_OPTIONS = [
+  { value: "default", label: "Featured" },
+  { value: "price-asc", label: "Price: Low to High" },
+  { value: "price-desc", label: "Price: High to Low" },
+  { value: "rating", label: "Highest Rated" },
+];
 
-  const [quantity, setQuantity] = useState(1);
-  const [selectedColor, setSelectedColor] = useState(product.colors?.[0] ?? null);
-  const [activeTab, setActiveTab] = useState("description");
+export default function ProductList() {
+  const { searchQuery, filters, dispatch } = useApp();
+  const [loading] = useState(false); // Replace with real loading state if fetching from API
 
-  // Get similar products (same category OR same brand, exclude current product)
-  const similarProducts = allProducts.filter(
-    p => p._id !== product._id && (p.category === product.category || p.brand === product.brand)
-  ).slice(0, 8);
+  // Filter & sort products
+  const filtered = useMemo(() => {
+    let result = [...products];
 
-  const increment = () => setQuantity((q) => Math.min(q + 1, 99));
-  const decrement = () => setQuantity((q) => Math.max(1, q - 1));
+    // Search
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.title.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q) ||
+          p.description.toLowerCase().includes(q)
+      );
+    }
 
-  const handleAddToCart = () => {
-    onAddToCart(product, Number(quantity));
-  };
+    // Category
+    if (filters.category !== "all") {
+      result = result.filter((p) => p.category === filters.category);
+    }
 
-  const currentPrice = product.salePrice ?? product.price ?? 0;
-  const originalPrice = product.salePrice ? product.price : null;
-  const discountPercent = originalPrice ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : null;
+    // Price range
+    result = result.filter(
+      (p) => p.price >= filters.minPrice && p.price <= (filters.maxPrice || Infinity)
+    );
 
-  const rating = product.rating ?? null;
-  const reviewsCount = product.reviewsCount ?? null;
+    // Sort
+    switch (filters.sort) {
+      case "price-asc":
+        result.sort((a, b) => a.price - b.price);
+        break;
+      case "price-desc":
+        result.sort((a, b) => b.price - a.price);
+        break;
+      case "rating":
+        result.sort((a, b) => b.rating - a.rating);
+        break;
+      default:
+        break;
+    }
 
-  const whatsappNumber = "+254745909218".replace(/\D/g, "");
-  const waMessage = encodeURIComponent(
-    `Hello, I'm interested in ${product.name} (${selectedColor ?? 'Default'}) - Qty: ${quantity} - Price: KES ${currentPrice?.toLocaleString()}`
-  );
+    return result;
+  }, [searchQuery, filters]);
+
+  const setFilter = (key, value) =>
+    dispatch({ type: "SET_FILTER", filter: { [key]: value } });
 
   return (
-    <div className="pd-full-page">
-      <header className="pd-page-header">
-        <button className="pd-back" onClick={onClose}>← Back</button>
-        <h1>Product Details</h1>
-      </header>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-slate-900 mb-1">
+          {searchQuery ? `Results for "${searchQuery}"` : "All Products"}
+        </h1>
+        <p className="text-slate-500 text-sm">{filtered.length} products found</p>
+      </div>
 
-      <div className="pd-container">
-        <div className="pd-grid">
-          <div className="pd-media">
-            {product.imageUrl ? (
-              <img src={product.imageUrl} alt={product.name} className="pd-main-image" />
-            ) : (
-              <div className="pd-image-placeholder">No image</div>
-            )}
-            {product.gallery?.length > 1 && (
-              <div className="pd-thumbs">
-                {product.gallery.map((g, i) => (
-                  <img key={i} src={g} alt={`${product.name} ${i}`} className="pd-thumb" />
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* ── Sidebar Filters ─────────────────────────────────────────────────── */}
+        <aside className="lg:w-56 shrink-0">
+          <div className="sticky top-20 bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-6">
+
+            {/* Category */}
+            <div>
+              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Category</h3>
+              <div className="space-y-1">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setFilter("category", cat)}
+                    className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium capitalize transition-all ${
+                      filters.category === cat
+                        ? "bg-violet-600 text-white"
+                        : "text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {cat}
+                  </button>
                 ))}
               </div>
-            )}
-          </div>
-
-          <div className="pd-details">
-            <button className="pd-close-btn" onClick={onClose} aria-label="Close">✕</button>
-            {product.brand && <div className="pd-brand">{product.brand}</div>}
-            <h2 className="pd-title">{product.name}</h2>
-
-            {rating && reviewsCount && (
-              <div className="pd-rating">
-                <div className="pd-stars" aria-hidden>
-                  {"★".repeat(Math.round(rating))}
-                  {"☆".repeat(5 - Math.round(rating))}
-                </div>
-                <div className="pd-review-count">{rating.toFixed(1)} • {reviewsCount.toLocaleString()} reviews</div>
-              </div>
-            )}
-
-            <div className="pd-price-row">
-              <div className="pd-price">KSh {currentPrice?.toLocaleString()}</div>
-              {originalPrice && (
-                <>
-                  <div className="pd-original">KSh {originalPrice?.toLocaleString()}</div>
-                  {discountPercent > 0 && (
-                    <div className="pd-discount">-{discountPercent}%</div>
-                  )}
-                </>
-              )}
             </div>
 
-            <div className="pd-service">Service: <span>fulfilled by mercy electronics shop</span></div>
-
-            {product.colors && product.colors.length > 0 && (
-              <div className="pd-colors">
-                <label>Color:</label>
-                <div className="pd-color-options">
-                  {product.colors.map((c) => (
+            {/* Price Range */}
+            <div>
+              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Price Range</h3>
+              <div className="space-y-1">
+                {[
+                  { label: "All Prices", min: 0, max: Infinity },
+                  { label: "Under $100", min: 0, max: 100 },
+                  { label: "$100 – $250", min: 100, max: 250 },
+                  { label: "$250 – $500", min: 250, max: 500 },
+                  { label: "Over $500", min: 500, max: Infinity },
+                ].map((range) => {
+                  const active = filters.minPrice === range.min && filters.maxPrice === range.max;
+                  return (
                     <button
-                      key={c}
-                      className={`color-btn ${selectedColor === c ? 'active' : ''}`}
-                      onClick={() => setSelectedColor(c)}
-                      aria-pressed={selectedColor === c}
+                      key={range.label}
+                      onClick={() => {
+                        setFilter("minPrice", range.min);
+                        setFilter("maxPrice", range.max);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                        active ? "bg-violet-600 text-white" : "text-slate-600 hover:bg-slate-50"
+                      }`}
                     >
-                      {c}
+                      {range.label}
                     </button>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
-            )}
-
-            <div className="pd-delivery">Delivery:Ships from Nairobi CBD</div>
-
-            <div className="pd-quantity-row">
-              <div className="pd-quantity">
-                <label>Quantity</label>
-                <div className="quantity-input">
-                  <button onClick={decrement} aria-label="Decrease">−</button>
-                  <input type="number" value={quantity} onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))} />
-                  <button onClick={increment} aria-label="Increase">+</button>
-                </div>
-              </div>
-              <button className="pd-add-inline" onClick={handleAddToCart}>Add to Cart</button>
             </div>
 
-            <div className="pd-actions-secondary">
-              <a className="pd-order-wa" href={`https://wa.me/${whatsappNumber}?text=${waMessage}`} target="_blank" rel="noopener noreferrer">Order via WhatsApp</a>
-              <a className="pd-call" href="tel:+254700000000" title="Call to order">📞 Call</a>
+            {/* Reset */}
+            <button
+              onClick={() => dispatch({ type: "SET_FILTER", filter: { category: "all", minPrice: 0, maxPrice: Infinity, sort: "default" } })}
+              className="w-full text-sm text-slate-400 hover:text-violet-600 transition-colors text-center"
+            >
+              Reset Filters
+            </button>
+          </div>
+        </aside>
+
+        {/* ── Product Grid ─────────────────────────────────────────────────────── */}
+        <div className="flex-1">
+          {/* Sort bar */}
+          <div className="flex items-center justify-between mb-5">
+            <span className="text-sm text-slate-500 hidden sm:block">{filtered.length} items</span>
+            <div className="flex items-center gap-2 ml-auto">
+              <label className="text-sm text-slate-500">Sort:</label>
+              <select
+                value={filters.sort}
+                onChange={(e) => setFilter("sort", e.target.value)}
+                className="text-sm bg-white border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500 cursor-pointer"
+              >
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
             </div>
           </div>
-        </div>
 
-        <div className="pd-tabs">
-          <button className={`pd-tab ${activeTab === "description" ? "active" : ""}`} onClick={() => setActiveTab("description")}>Description</button>
-          <button className={`pd-tab ${activeTab === "specs" ? "active" : ""}`} onClick={() => setActiveTab("specs")}>Specifications</button>
-          <button className={`pd-tab ${activeTab === "recommend" ? "active" : ""}`} onClick={() => setActiveTab("recommend")}>Similar Products</button>
-        </div>
-
-        <div className="pd-tab-content">
-          {activeTab === "description" && (
-            <div className="pd-desc-section">
-              {product.description ? (
-                <>
-                  <h4>About this item</h4>
-                  <p>{product.description.split(/(?<=[.!?])\s+/).join('\n')}</p>
-                </>
-              ) : (
-                <p className="pd-empty">No description available.</p>
-              )}
+          {/* Grid */}
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+              {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
             </div>
-          )}
-
-          {activeTab === "specs" && (
-            <div className="pd-specs-table">
-              {product.specs ? (
-                <table>
-                  <tbody>
-                    <tr><td></td><td>{product.specs.split(/(?<=[.!?])\s+/).join('\n')}</td></tr>
-                  </tbody>
-                </table>
-              ) : (
-                <p className="pd-empty">No specifications available.</p>
-              )}
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-8 h-8 text-slate-400">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803 7.5 7.5 0 0016.803 15.803z" />
+                </svg>
+              </div>
+              <h3 className="font-semibold text-slate-700 mb-1">No products found</h3>
+              <p className="text-slate-400 text-sm">Try adjusting your search or filters</p>
             </div>
-          )}
-
-          {activeTab === "recommend" && (
-            <div className="pd-recommend-section">
-              {similarProducts.length > 0 ? (
-                <ul>
-                  {similarProducts.map((p) => (
-                    <li key={p._id} className="pd-similar-product">
-                      <strong>{p.name}</strong> - KSh {p.price?.toLocaleString()}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="pd-empty">No similar products available.</p>
-              )}
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+              {filtered.map((p) => <ProductCard key={p.id} product={p} />)}
             </div>
           )}
         </div>
@@ -178,5 +181,3 @@ function ProductDetail({ product, allProducts = [], onAddToCart, onClose }) {
     </div>
   );
 }
-
-export default ProductDetail;
