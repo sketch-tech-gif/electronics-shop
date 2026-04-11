@@ -1,7 +1,8 @@
-// client/src/components/RegisterForm.jsx
 import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+
+const API = "https://electronics-shop-api-id3m.onrender.com";
 
 export default function RegisterForm() {
   const [name, setName] = useState("");
@@ -11,12 +12,21 @@ export default function RegisterForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    console.log("REGISTER START"); // debug
+
     try {
-      const res = await axios.post("http://localhost:5000/register", { name, email, password });
+      const res = await axios.post(`${API}/api/auth/register`, {
+        name,
+        email,
+        password,
+      });
+
       localStorage.setItem("token", res.data.token);
       alert("Registered successfully");
-      navigate("/"); // change to your home page
+      navigate("/");
     } catch (err) {
+      console.error(err);
       alert(err.response?.data?.msg || "Registration failed");
     }
   };
@@ -30,6 +40,7 @@ export default function RegisterForm() {
         onChange={(e) => setName(e.target.value)}
         required
       />
+
       <input
         type="email"
         placeholder="Email"
@@ -37,6 +48,7 @@ export default function RegisterForm() {
         onChange={(e) => setEmail(e.target.value)}
         required
       />
+
       <input
         type="password"
         placeholder="Password"
@@ -44,6 +56,7 @@ export default function RegisterForm() {
         onChange={(e) => setPassword(e.target.value)}
         required
       />
+
       <button type="submit">Register</button>
     </form>
   );

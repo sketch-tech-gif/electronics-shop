@@ -1,7 +1,8 @@
-// client/src/components/LoginForm.jsx
 import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+
+const API = "https://electronics-shop-api-id3m.onrender.com";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -10,12 +11,20 @@ export default function LoginForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    console.log("LOGIN START"); // debug
+
     try {
-      const res = await axios.post("http://localhost:5000/login", { email, password });
+      const res = await axios.post(`${API}/api/auth/login`, {
+        email,
+        password,
+      });
+
       localStorage.setItem("token", res.data.token);
       alert("Login successful");
-      navigate("/"); // change to your home page
+      navigate("/");
     } catch (err) {
+      console.error(err);
       alert(err.response?.data?.msg || "Login failed");
     }
   };
@@ -29,6 +38,7 @@ export default function LoginForm() {
         onChange={(e) => setEmail(e.target.value)}
         required
       />
+
       <input
         type="password"
         placeholder="Password"
@@ -36,9 +46,10 @@ export default function LoginForm() {
         onChange={(e) => setPassword(e.target.value)}
         required
       />
+
       <button type="submit">Login</button>
 
-      <a href="http://localhost:5000/auth/google">
+      <a href={`${API}/auth/google`}>
         <button type="button">Continue with Google</button>
       </a>
     </form>
