@@ -45,7 +45,7 @@ function PasswordStrength({ password }) {
     { label: 'Number',    pass: /[0-9]/.test(password) },
     { label: 'Symbol',    pass: /[^A-Za-z0-9]/.test(password) },
   ]
-  const score = checks.filter(c => c.pass).length
+  const score      = checks.filter(c => c.pass).length
   const barColors  = ['bg-red-400', 'bg-orange-400', 'bg-yellow-400', 'bg-green-500']
   const textColors = ['text-red-400', 'text-orange-400', 'text-yellow-500', 'text-green-500']
   const labels     = ['Weak', 'Fair', 'Good', 'Strong']
@@ -70,6 +70,7 @@ function PasswordStrength({ password }) {
   )
 }
 
+// ✅ FIX: length is now always 6 to match backend
 function OtpInput({ length = 6, value, onChange }) {
   const refs   = useRef([])
   const digits = value.split('').concat(Array(length).fill('')).slice(0, length)
@@ -184,7 +185,7 @@ export default function AuthPage() {
 
   const [mode,             setMode]             = useState(searchParams.get('mode') === 'register' ? 'register' : 'login')
   const [regMethod,        setRegMethod]        = useState('email')   // 'email' | 'phone'
-  const [step,             setStep]             = useState(0)         // 0=details 1=verify 2=done
+  const [step,             setStep]             = useState(0)         // 0=details 1=verify
   const [loading,          setLoading]          = useState(false)
   const [errors,           setErrors]           = useState({})
   const [showPwd,          setShowPwd]          = useState(false)
@@ -215,7 +216,7 @@ export default function AuthPage() {
     setMode(m); setStep(0); setErrors({}); setOtp(''); setOtpError('')
   }
 
-  // ── Google OAuth — UNCHANGED from original ─────────────────────────────────
+  // ── Google OAuth ────────────────────────────────────────────────────────────
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
@@ -229,7 +230,7 @@ export default function AuthPage() {
           body: JSON.stringify({
             credential: tokenResponse.access_token,
             email: userInfo.email,
-            name: userInfo.name
+            name:  userInfo.name,
           }),
         })
         const data = await res.json()
@@ -238,24 +239,25 @@ export default function AuthPage() {
         login(data.user)
         navigate('/')
       } catch {
-        setErrors({ general: 'Google login failed' })
+        setErrors({ general: 'Google login failed. Please try again.' })
       }
-    }
+    },
+    onError: () => setErrors({ general: 'Google login failed. Please try again.' }),
   })
 
-  // ── Login — UNCHANGED logic ────────────────────────────────────────────────
+  // ── Login ───────────────────────────────────────────────────────────────────
   const handleLogin = async (e) => {
     e.preventDefault()
     setErrors({})
     setLoading(true)
     try {
-      const res = await fetch(`${API}/api/auth/login`, {
-        method: 'POST',
+      const res  = await fetch(`${API}/api/auth/login`, {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loginForm),
+        body:    JSON.stringify(loginForm),
       })
       const data = await res.json()
-      if (!res.ok) { setErrors({ general: data.error }); setLoading(false); return }
+      if (!res.ok) { setErrors({ general: data.message || data.error }); setLoading(false); return }
       localStorage.setItem('token', data.token)
       login(data.user)
       navigate('/')
@@ -265,10 +267,10 @@ export default function AuthPage() {
     setLoading(false)
   }
 
-  // ── Register step 0 — send OTP ─────────────────────────────────────────────
+  // ── Validate register form ──────────────────────────────────────────────────
   const validateReg = () => {
     const e = {}
-    if (!regForm.name.trim())                                 e.name     = 'Full name is required'
+    if (!regForm.name.trim())                                  e.name     = 'Full name is required'
     if (regMethod === 'email') {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regForm.email)) e.email    = 'Enter a valid email address'
     } else {
@@ -280,22 +282,30 @@ export default function AuthPage() {
     return Object.keys(e).length === 0
   }
 
+  // ── Step 0: Send OTP ────────────────────────────────────────────────────────
   const handleSendOtp = async (e) => {
     e.preventDefault()
     if (!validateReg()) return
     setLoading(true)
+    setErrors({})
     try {
       const payload = regMethod === 'email'
         ? { type: 'email', email: regForm.email }
         : { type: 'phone', phone: `${countryCode.code}${regForm.phone}` }
 
       const res  = await fetch(`${API}/api/auth/send-otp`, {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body:    JSON.stringify(payload),
       })
       const data = await res.json()
-      if (!res.ok) { setErrors({ general: data.error }); setLoading(false); return }
+
+      if (!res.ok) {
+        setErrors({ general: data.error || 'Failed to send code. Please try again.' })
+        setLoading(false)
+        return
+      }
+
       setStep(1)
       startTimer()
     } catch {
@@ -304,10 +314,12 @@ export default function AuthPage() {
     setLoading(false)
   }
 
-  // ── Register step 1 — verify OTP & create account ─────────────────────────
+  // ── Step 1: Verify OTP & create account ────────────────────────────────────
   const handleVerifyOtp = async () => {
+    // ✅ FIX: check for 6 digits (was checking length < 6 correctly but OtpInput was set to 4)
     if (otp.length < 6) { setOtpError('Enter the complete 6-digit code'); return }
     setLoading(true)
+    setOtpError('')
     try {
       const payload = {
         name:     regForm.name,
@@ -318,13 +330,19 @@ export default function AuthPage() {
           : { phone: `${countryCode.code}${regForm.phone}` }),
       }
       const res  = await fetch(`${API}/api/auth/register`, {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body:    JSON.stringify(payload),
       })
       const data = await res.json()
-      if (!res.ok) { setOtpError(data.error || 'Invalid or expired code'); setLoading(false); return }
-      // show success toast then redirect to login
+
+      if (!res.ok) {
+        setOtpError(data.error || 'Invalid or expired code. Please try again.')
+        setLoading(false)
+        return
+      }
+
+      // Success — show toast then redirect to login
       setOtpError('')
       setShowToast(true)
       setTimeout(() => {
@@ -337,6 +355,7 @@ export default function AuthPage() {
     setLoading(false)
   }
 
+  // ── Resend OTP ──────────────────────────────────────────────────────────────
   const handleResend = async () => {
     if (resendTimer > 0) return
     setOtp(''); setOtpError('')
@@ -344,12 +363,13 @@ export default function AuthPage() {
       ? { type: 'email', email: regForm.email }
       : { type: 'phone', phone: `${countryCode.code}${regForm.phone}` }
     try {
-      await fetch(`${API}/api/auth/send-otp`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+      const res = await fetch(`${API}/api/auth/send-otp`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
       })
-      startTimer()
-    } catch { /* silent */ }
+      if (res.ok) startTimer()
+    } catch { /* silent fail */ }
   }
 
   // ── helpers ────────────────────────────────────────────────────────────────
@@ -444,7 +464,7 @@ export default function AuthPage() {
       {/* email / phone toggle */}
       <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
         {['email', 'phone'].map(m => (
-          <button key={m} type="button" onClick={() => setRegMethod(m)}
+          <button key={m} type="button" onClick={() => { setRegMethod(m); setErrors({}) }}
             className={`flex-1 py-1.5 rounded-md text-sm font-semibold flex items-center justify-center gap-1.5 transition-all
               ${regMethod === m ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
             {m === 'email' ? emailIco : phoneIco}
@@ -565,10 +585,9 @@ export default function AuthPage() {
     </form>
   )
 
-  // ── render: REGISTER step 1 — OTP ─────────────────────────────────────────
+  // ── render: REGISTER step 1 — OTP verify ──────────────────────────────────
   const renderVerify = () => (
     <div className="text-center">
-      {/* orange star badge — matches screenshot */}
       <div className="w-16 h-16 rounded-full bg-orange-400 flex items-center justify-center mx-auto mb-5 shadow-md">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
@@ -579,13 +598,17 @@ export default function AuthPage() {
         Verify your {regMethod === 'email' ? 'email address' : 'phone number'}
       </h3>
       <p className="text-sm text-gray-500 leading-relaxed mb-1">
-        We have sent a verification code to
+        We sent a 6-digit verification code to
       </p>
-      <p className="text-sm font-semibold text-gray-800 mb-6">
+      <p className="text-sm font-semibold text-gray-800 mb-2">
         {regMethod === 'email' ? regForm.email : `${countryCode.code}${regForm.phone}`}
       </p>
+      <p className="text-xs text-gray-400 mb-4">
+        Check your {regMethod === 'email' ? 'inbox (and spam folder)' : 'messages'}
+      </p>
 
-      <OtpInput length={4} value={otp} onChange={setOtp} />
+      {/* ✅ FIX: length={6} matches the 6-digit OTP generated by backend */}
+      <OtpInput length={6} value={otp} onChange={setOtp} />
 
       {otpError && (
         <p className="text-xs text-red-500 flex items-center justify-center gap-1 mb-3">
@@ -595,14 +618,14 @@ export default function AuthPage() {
 
       <button onClick={handleVerifyOtp} disabled={loading}
         className="w-full bg-orange-400 hover:bg-orange-500 text-white py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-60 mb-5 shadow-sm">
-        {loading ? <><Spinner /> Verifying…</> : 'Submit'}
+        {loading ? <><Spinner /> Verifying…</> : 'Verify & Create Account'}
       </button>
 
-      <p className="text-sm text-gray-500 leading-relaxed">
-        Didn't receive the verification code? It could take a bit of time, request a new code in{' '}
+      <p className="text-sm text-gray-500">
+        Didn't receive the code?{' '}
         {resendTimer > 0
-          ? <span className="text-orange-400 font-medium">{resendTimer} seconds</span>
-          : <button type="button" onClick={handleResend} className="text-orange-400 font-semibold hover:underline">request now</button>
+          ? <span className="text-orange-400 font-medium">Resend in {resendTimer}s</span>
+          : <button type="button" onClick={handleResend} className="text-orange-400 font-semibold hover:underline">Resend now</button>
         }
       </p>
 
@@ -622,9 +645,9 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center px-4 py-8">
 
-      {/* ── success toast ── */}
+      {/* success toast */}
       {showToast && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 animate-bounce-once">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50">
           <div className="flex items-center gap-3 bg-white border border-green-200 shadow-2xl rounded-2xl px-6 py-4 min-w-72">
             <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5">
@@ -669,7 +692,7 @@ export default function AuthPage() {
             ))}
           </div>
 
-          {/* stepper — show during both register steps */}
+          {/* stepper */}
           {mode === 'register' && <Stepper steps={regSteps} current={step} />}
 
           {/* forms */}
