@@ -194,6 +194,7 @@ export default function AuthPage() {
   const [otp,              setOtp]              = useState('')
   const [otpError,         setOtpError]         = useState('')
   const [resendTimer,      setResendTimer]      = useState(0)
+  const [showToast,        setShowToast]        = useState(false)
   const timerRef = useRef(null)
 
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
@@ -323,8 +324,13 @@ export default function AuthPage() {
       })
       const data = await res.json()
       if (!res.ok) { setOtpError(data.error || 'Invalid or expired code'); setLoading(false); return }
+      // show success toast then redirect to login
       setOtpError('')
-      setStep(2)
+      setShowToast(true)
+      setTimeout(() => {
+        setShowToast(false)
+        switchMode('login')
+      }, 2500)
     } catch {
       setOtpError('Network error. Please try again.')
     }
@@ -562,18 +568,24 @@ export default function AuthPage() {
   // ── render: REGISTER step 1 — OTP ─────────────────────────────────────────
   const renderVerify = () => (
     <div className="text-center">
-      <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-4 text-3xl">
-        {regMethod === 'email' ? '📧' : '📱'}
+      {/* orange star badge — matches screenshot */}
+      <div className="w-16 h-16 rounded-full bg-orange-400 flex items-center justify-center mx-auto mb-5 shadow-md">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
       </div>
-      <h3 className="text-lg font-bold text-gray-900 mb-1">
-        {regMethod === 'email' ? 'Verify your email' : 'Verify your phone'}
+
+      <h3 className="text-xl font-bold text-gray-900 mb-2">
+        Verify your {regMethod === 'email' ? 'email address' : 'phone number'}
       </h3>
-      <p className="text-sm text-gray-500 mb-1">We sent a 6-digit code to</p>
-      <p className="text-sm font-semibold text-blue-600 mb-4">
-        {regMethod === 'email' ? regForm.email : `${countryCode.code} ${regForm.phone}`}
+      <p className="text-sm text-gray-500 leading-relaxed mb-1">
+        We have sent a verification code to
+      </p>
+      <p className="text-sm font-semibold text-gray-800 mb-6">
+        {regMethod === 'email' ? regForm.email : `${countryCode.code}${regForm.phone}`}
       </p>
 
-      <OtpInput length={6} value={otp} onChange={setOtp} />
+      <OtpInput length={4} value={otp} onChange={setOtp} />
 
       {otpError && (
         <p className="text-xs text-red-500 flex items-center justify-center gap-1 mb-3">
@@ -582,53 +594,51 @@ export default function AuthPage() {
       )}
 
       <button onClick={handleVerifyOtp} disabled={loading}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-60 mb-4">
-        {loading ? <><Spinner /> Verifying…</> : 'Verify Code'}
+        className="w-full bg-orange-400 hover:bg-orange-500 text-white py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-60 mb-5 shadow-sm">
+        {loading ? <><Spinner /> Verifying…</> : 'Submit'}
       </button>
 
-      <p className="text-sm text-gray-500">
-        Didn't receive it?{' '}
+      <p className="text-sm text-gray-500 leading-relaxed">
+        Didn't receive the verification code? It could take a bit of time, request a new code in{' '}
         {resendTimer > 0
-          ? <span className="text-gray-400">Resend in {resendTimer}s</span>
-          : <button type="button" onClick={handleResend} className="text-blue-600 font-semibold hover:underline">Resend code</button>
+          ? <span className="text-orange-400 font-medium">{resendTimer} seconds</span>
+          : <button type="button" onClick={handleResend} className="text-orange-400 font-semibold hover:underline">request now</button>
         }
       </p>
 
       <button type="button" onClick={() => { setStep(0); setOtp(''); setOtpError('') }}
-        className="mt-3 text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 mx-auto transition-colors">
+        className="mt-4 text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 mx-auto transition-colors">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
         Change {regMethod === 'email' ? 'email address' : 'phone number'}
       </button>
     </div>
   )
 
-  // ── render: REGISTER step 2 — success ─────────────────────────────────────
-  const renderSuccess = () => (
-    <div className="text-center py-4">
-      <div className="w-20 h-20 rounded-full bg-green-50 border-4 border-green-400 flex items-center justify-center mx-auto mb-5">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
-      </div>
-      <h3 className="text-2xl font-bold text-gray-900 mb-2">Account Created!</h3>
-      <p className="text-sm text-gray-500 leading-relaxed mb-6">
-        Welcome to TechStore, <strong>{regForm.name.split(' ')[0]}</strong>!<br />
-        Your account has been verified and is ready to use.
-      </p>
-      <button onClick={() => switchMode('login')}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-semibold text-sm transition-colors">
-        Sign In to Your Account
-      </button>
-    </div>
-  )
-
   const regSteps = regMethod === 'email'
-    ? ['Your Details', 'Verify Email', 'All Done!']
-    : ['Your Details', 'Verify Phone', 'All Done!']
+    ? ['Your Details', 'Verify Email']
+    : ['Your Details', 'Verify Phone']
 
   // ── page shell ─────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center px-4 py-8">
+
+      {/* ── success toast ── */}
+      {showToast && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 animate-bounce-once">
+          <div className="flex items-center gap-3 bg-white border border-green-200 shadow-2xl rounded-2xl px-6 py-4 min-w-72">
+            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">Account created successfully!</p>
+              <p className="text-xs text-gray-500 mt-0.5">Redirecting you to sign in…</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="w-full max-w-md">
 
         {/* logo */}
@@ -659,14 +669,13 @@ export default function AuthPage() {
             ))}
           </div>
 
-          {/* stepper — only show during registration steps 0 & 1 */}
-          {mode === 'register' && step < 2 && <Stepper steps={regSteps} current={step} />}
+          {/* stepper — show during both register steps */}
+          {mode === 'register' && <Stepper steps={regSteps} current={step} />}
 
           {/* forms */}
           {mode === 'login'                  && renderLogin()}
           {mode === 'register' && step === 0 && renderRegDetails()}
           {mode === 'register' && step === 1 && renderVerify()}
-          {mode === 'register' && step === 2 && renderSuccess()}
         </div>
 
         {/* footer links */}
