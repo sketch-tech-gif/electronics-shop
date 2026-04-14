@@ -1,3 +1,20 @@
+const africastalking = require("africastalking")({
+  apiKey: process.env.AT_API_KEY,
+  username: "sandbox", // change to your username in production
+});
+
+const sms = africastalking.SMS;
+
+const nodemailer = require("nodemailer");
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -52,16 +69,18 @@ var userSchema = new mongoose.Schema({
 var User = mongoose.model("User", userSchema);
 
 // ── OTP STORE ─────────────────────────────
-var otpStore = {}; // { key: { otp, expiresAt } }
+var otpStore = {};
 
 // ── GOOGLE AUTH ───────────────────────────
 app.post("/api/auth/google", async function(req, res) {
   try {
     var email = req.body.email;
     var name = req.body.name;
+
     if (!email) return res.status(400).json({ error: "Invalid Google token" });
 
     var user = await User.findOne({ email: email });
+
     if (!user) {
       user = await User.create({
         name: name || "Google User",
@@ -72,10 +91,12 @@ app.post("/api/auth/google", async function(req, res) {
     }
 
     var token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
+
     res.json({
       token: token,
       user: { id: user._id, name: user.name, email: user.email, phone: user.phone },
     });
+
   } catch (error) {
     res.status(500).json({ error: "Google authentication failed" });
   }
@@ -98,16 +119,48 @@ app.post("/api/auth/send-otp", async function(req, res) {
       expiresAt: Date.now() + 5 * 60 * 1000,
     };
 
+    // 📱 SEND SMS
+    if (phone) {
+      try {
+        await sms.send({
+          to: [phone],
+          message: `Your TechStore verification code is ${otp}`,
+        });
+      } catch (smsError) {
+        console.log("SMS error:", smsError.message);
+      }
+    }
+
+    // 📧 SEND EMAIL
+    if (email) {
+      try {
+        await transporter.sendMail({
+          from: `"TechStore" <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: "Your Verification Code",
+          html: `
+            <h2>TechStore Verification</h2>
+            <p>Your OTP code is:</p>
+            <h1>${otp}</h1>
+            <p>This code expires in 5 minutes.</p>
+          `,
+        });
+      } catch (mailError) {
+        console.log("Email error:", mailError.message);
+      }
+    }
+
     console.log("OTP for", key, ":", otp);
 
-    res.json({ success: true, message: "OTP sent" });
+    res.json({ success: true, message: "OTP sent successfully" });
 
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Failed to send OTP" });
   }
 });
 
-// ── REGISTER (WITH OTP VERIFY) ─────────────────
+// ── REGISTER ─────────────────
 app.post("/api/auth/register", async function(req, res) {
   try {
     var { name, email, phone, password, otp } = req.body;
