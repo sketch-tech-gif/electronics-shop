@@ -5,8 +5,7 @@ if (process.env.NODE_ENV !== "production") {
 
 const africastalking = require("africastalking")({
   apiKey: process.env.AT_API_KEY,
-  username: "sandbox", // change to your username in production
-});
+username: process.env.AT_USERNAME,});
 
 const sms = africastalking.SMS;
 
