@@ -3,12 +3,6 @@ if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
 
-const africastalking = require("africastalking")({
-  apiKey: process.env.AT_API_KEY,
-username: process.env.AT_USERNAME,});
-
-const sms = africastalking.SMS;
-
 const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
@@ -74,7 +68,6 @@ var userSchema = new mongoose.Schema(
 var User = mongoose.model("User", userSchema);
 
 // ── OTP STORE ─────────────────────────────────────────────────────────────────
-// Structure: { [email/phone]: { otp, expiresAt, purpose: "register" | "reset" } }
 var otpStore = {};
 
 // ── HELPER: Send OTP via Email ────────────────────────────────────────────────
@@ -94,17 +87,6 @@ async function sendEmailOtp(email, otp, purpose) {
         <p style="color: #999; font-size: 13px;">If you didn't request this, please ignore this email.</p>
       </div>
     `,
-  });
-}
-
-// ── HELPER: Send OTP via SMS ──────────────────────────────────────────────────
-async function sendSmsOtp(phone, otp, purpose) {
-  const isReset = purpose === "reset";
-  await sms.send({
-    to: [phone],
-    message: isReset
-      ? `Your TechStore password reset code is ${otp}. Expires in 5 minutes.`
-      : `Your TechStore verification code is ${otp}. Expires in 5 minutes.`,
   });
 }
 
@@ -144,54 +126,31 @@ app.post("/api/auth/google", async function (req, res) {
 // ── SEND OTP (Registration) ───────────────────────────────────────────────────
 app.post("/api/auth/send-otp", async function (req, res) {
   try {
-    var { email, phone } = req.body;
+    var { email } = req.body;
 
-    if (!email && !phone) {
-      return res.status(400).json({ error: "Email or phone required" });
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
     }
 
-    // ── STRICT DUPLICATE CHECK ────────────────────────────────────────────────
-    if (email) {
-      const existingEmail = await User.findOne({ email: email.toLowerCase().trim() });
-      if (existingEmail) {
-        return res.status(400).json({ error: "An account with this email already exists. Please sign in." });
-      }
+    const existingEmail = await User.findOne({ email: email.toLowerCase().trim() });
+    if (existingEmail) {
+      return res.status(400).json({ error: "An account with this email already exists. Please sign in." });
     }
 
-    if (phone) {
-      const existingPhone = await User.findOne({ phone: phone.trim() });
-      if (existingPhone) {
-        return res.status(400).json({ error: "An account with this phone number already exists. Please sign in." });
-      }
-    }
-    // ─────────────────────────────────────────────────────────────────────────
-
-    var key = email || phone;
     var otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    otpStore[key] = {
+    otpStore[email] = {
       otp: otp,
       expiresAt: Date.now() + 5 * 60 * 1000,
       purpose: "register",
     };
 
-    if (phone) {
-      try {
-        await sendSmsOtp(phone, otp, "register");
-        console.log("✅ SMS sent to", phone);
-      } catch (smsError) {
-        console.error("❌ SMS error:", smsError.message);
-      }
-    }
-
-    if (email) {
-      try {
-        await sendEmailOtp(email, otp, "register");
-        console.log("✅ Email sent to", email);
-      } catch (mailError) {
-        console.error("❌ Email error:", mailError.message);
-        return res.status(500).json({ error: "Failed to send email. Check EMAIL_USER and EMAIL_PASS in .env" });
-      }
+    try {
+      await sendEmailOtp(email, otp, "register");
+      console.log("✅ Email sent to", email);
+    } catch (mailError) {
+      console.error("❌ Email error:", mailError.message);
+      return res.status(500).json({ error: "Failed to send email. Check EMAIL_USER and EMAIL_PASS in .env" });
     }
 
     res.json({ success: true, message: "OTP sent successfully" });
@@ -204,48 +163,35 @@ app.post("/api/auth/send-otp", async function (req, res) {
 // ── REGISTER ──────────────────────────────────────────────────────────────────
 app.post("/api/auth/register", async function (req, res) {
   try {
-    var { name, email, phone, password, otp } = req.body;
+    var { name, email, password, otp } = req.body;
 
-    if (!name || (!email && !phone) || !password || !otp) {
+    if (!name || !email || !password || !otp) {
       return res.status(400).json({ error: "All fields including OTP are required" });
     }
 
-    var key = email || phone;
-
-    // ── STRICT DUPLICATE CHECK (second layer) ─────────────────────────────────
-    if (email) {
-      const existingEmail = await User.findOne({ email: email.toLowerCase().trim() });
-      if (existingEmail) {
-        return res.status(400).json({ error: "An account with this email already exists. Please sign in." });
-      }
+    const existingEmail = await User.findOne({ email: email.toLowerCase().trim() });
+    if (existingEmail) {
+      return res.status(400).json({ error: "An account with this email already exists. Please sign in." });
     }
 
-    if (phone) {
-      const existingPhone = await User.findOne({ phone: phone.trim() });
-      if (existingPhone) {
-        return res.status(400).json({ error: "An account with this phone number already exists. Please sign in." });
-      }
-    }
-    // ─────────────────────────────────────────────────────────────────────────
-
-    if (!otpStore[key]) {
+    if (!otpStore[email]) {
       return res.status(400).json({ error: "No OTP found. Please request a new one." });
     }
 
-    if (otpStore[key].purpose !== "register") {
+    if (otpStore[email].purpose !== "register") {
       return res.status(400).json({ error: "Invalid OTP. Please request a new one." });
     }
 
-    if (otpStore[key].otp !== otp) {
+    if (otpStore[email].otp !== otp) {
       return res.status(400).json({ error: "Invalid OTP. Please try again." });
     }
 
-    if (Date.now() > otpStore[key].expiresAt) {
-      delete otpStore[key];
+    if (Date.now() > otpStore[email].expiresAt) {
+      delete otpStore[email];
       return res.status(400).json({ error: "OTP has expired. Please request a new one." });
     }
 
-    delete otpStore[key];
+    delete otpStore[email];
 
     if (password.length < 6) {
       return res.status(400).json({ error: "Password must be at least 6 characters" });
@@ -255,8 +201,8 @@ app.post("/api/auth/register", async function (req, res) {
 
     var user = await User.create({
       name: name,
-      email: email ? email.toLowerCase().trim() : "",
-      phone: phone ? phone.trim() : "",
+      email: email.toLowerCase().trim(),
+      phone: "",
       password: hashed,
     });
 
@@ -275,49 +221,32 @@ app.post("/api/auth/register", async function (req, res) {
 // ── FORGOT PASSWORD — STEP 1: Send Reset OTP ─────────────────────────────────
 app.post("/api/auth/forgot-password", async function (req, res) {
   try {
-    var { email, phone } = req.body;
+    var { email } = req.body;
 
-    if (!email && !phone) {
-      return res.status(400).json({ error: "Email or phone required" });
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
     }
 
-    var user = null;
-    if (email) {
-      user = await User.findOne({ email: email.toLowerCase().trim() });
-    } else if (phone) {
-      user = await User.findOne({ phone: phone.trim() });
-    }
+    var user = await User.findOne({ email: email.toLowerCase().trim() });
 
     if (!user) {
-      return res.status(404).json({ error: "No account found with that email or phone number." });
+      return res.status(404).json({ error: "No account found with that email." });
     }
 
-    var key = email || phone;
     var otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    otpStore[key] = {
+    otpStore[email] = {
       otp: otp,
       expiresAt: Date.now() + 5 * 60 * 1000,
       purpose: "reset",
     };
 
-    if (phone) {
-      try {
-        await sendSmsOtp(phone, otp, "reset");
-        console.log("✅ Reset SMS sent to", phone);
-      } catch (smsError) {
-        console.error("❌ SMS error:", smsError.message);
-      }
-    }
-
-    if (email) {
-      try {
-        await sendEmailOtp(email, otp, "reset");
-        console.log("✅ Reset email sent to", email);
-      } catch (mailError) {
-        console.error("❌ Email error:", mailError.message);
-        return res.status(500).json({ error: "Failed to send reset email. Check EMAIL_USER and EMAIL_PASS in .env" });
-      }
+    try {
+      await sendEmailOtp(email, otp, "reset");
+      console.log("✅ Reset email sent to", email);
+    } catch (mailError) {
+      console.error("❌ Email error:", mailError.message);
+      return res.status(500).json({ error: "Failed to send reset email. Check EMAIL_USER and EMAIL_PASS in .env" });
     }
 
     res.json({ success: true, message: "Password reset OTP sent successfully" });
@@ -330,43 +259,37 @@ app.post("/api/auth/forgot-password", async function (req, res) {
 // ── FORGOT PASSWORD — STEP 2: Verify Reset OTP ───────────────────────────────
 app.post("/api/auth/verify-reset-otp", async function (req, res) {
   try {
-    var { email, phone, otp } = req.body;
+    var { email, otp } = req.body;
 
-    if (!otp || (!email && !phone)) {
-      return res.status(400).json({ error: "Email/phone and OTP are required" });
+    if (!otp || !email) {
+      return res.status(400).json({ error: "Email and OTP are required" });
     }
 
-    var key = email || phone;
-
-    if (!otpStore[key]) {
+    if (!otpStore[email]) {
       return res.status(400).json({ error: "No OTP found. Please request a new one." });
     }
 
-    if (otpStore[key].purpose !== "reset") {
+    if (otpStore[email].purpose !== "reset") {
       return res.status(400).json({ error: "Invalid OTP. Please request a password reset." });
     }
 
-    if (otpStore[key].otp !== otp) {
+    if (otpStore[email].otp !== otp) {
       return res.status(400).json({ error: "Invalid OTP. Please try again." });
     }
 
-    if (Date.now() > otpStore[key].expiresAt) {
-      delete otpStore[key];
+    if (Date.now() > otpStore[email].expiresAt) {
+      delete otpStore[email];
       return res.status(400).json({ error: "OTP has expired. Please request a new one." });
     }
 
-    var user = email
-      ? await User.findOne({ email: email.toLowerCase().trim() })
-      : await User.findOne({ phone: phone.trim() });
+    var user = await User.findOne({ email: email.toLowerCase().trim() });
 
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }
 
-    // Clear OTP after successful verification
-    delete otpStore[key];
+    delete otpStore[email];
 
-    // Issue a short-lived reset token valid for 10 minutes
     var resetToken = jwt.sign(
       { id: user._id, purpose: "reset" },
       JWT_SECRET,
