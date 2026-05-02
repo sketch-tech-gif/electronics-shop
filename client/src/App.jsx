@@ -16,9 +16,9 @@ const AccountPage    = lazy(() => import('./pages/AccountPage'))
 const OrderSuccess   = lazy(() => import('./pages/OrderSuccessPage'))
 const AboutPage      = lazy(() => import('./pages/aboutpage'))
 const HelpPage       = lazy(() => import('./pages/helppage'))
-const ContactPage    = lazy(() => import('./pages/ContactPage'))
-const PrivacyPage    = lazy(() => import('./pages/PrivacyPage'))
-const TermsPage      = lazy(() => import('./pages/TermsPage'))
+const ContactPage    = lazy(() => import('./pages/contactpage'))
+const PrivacyPage    = lazy(() => import('./pages/privacypage'))
+const TermsPage      = lazy(() => import('./pages/termspage'))
 const SitemapPage    = lazy(() => import('./pages/SitemapPage'))
 
 function Loader() {
