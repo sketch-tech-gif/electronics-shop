@@ -2,6 +2,9 @@
 import { Link } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 
+const KES_RATE = 130;
+const fmt = (usd) => `KES ${(usd * KES_RATE).toLocaleString("en-KE", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
 export default function Cart() {
   const { cart, cartTotal, removeFromCart, updateQty, clearCart } = useApp();
 
@@ -22,9 +25,11 @@ export default function Cart() {
     );
   }
 
-  const shipping = cartTotal >= 50 ? 0 : 9.99;
-  const tax = cartTotal * 0.08;
-  const orderTotal = cartTotal + shipping + tax;
+  const FREE_SHIPPING_THRESHOLD = 6500; // KES 6,500
+  const cartTotalKes = cartTotal * KES_RATE;
+  const shipping = cartTotalKes >= FREE_SHIPPING_THRESHOLD ? 0 : 500; // KES 500 shipping
+  const tax = cartTotalKes * 0.08;
+  const orderTotal = cartTotalKes + shipping + tax;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -55,7 +60,7 @@ export default function Cart() {
                   {item.title}
                 </Link>
                 <p className="text-xs text-slate-400 capitalize mt-0.5">{item.category}</p>
-                <p className="text-violet-600 font-bold mt-1">${item.price.toFixed(2)}</p>
+                <p className="text-violet-600 font-bold mt-1">{fmt(item.price)}</p>
               </div>
 
               {/* Qty controls */}
@@ -77,7 +82,7 @@ export default function Cart() {
 
               {/* Line total + remove */}
               <div className="text-right shrink-0 ml-2">
-                <p className="font-bold text-slate-800">${(item.price * item.qty).toFixed(2)}</p>
+                <p className="font-bold text-slate-800">{fmt(item.price * item.qty)}</p>
                 <button
                   onClick={() => removeFromCart(item.id)}
                   className="text-xs text-slate-400 hover:text-red-500 transition-colors mt-1"
@@ -89,15 +94,15 @@ export default function Cart() {
           ))}
 
           {/* Free shipping progress */}
-          {cartTotal < 50 && (
+          {cartTotalKes < FREE_SHIPPING_THRESHOLD && (
             <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
               <p className="text-sm text-amber-700 font-medium">
-                Add <strong>${(50 - cartTotal).toFixed(2)}</strong> more for free shipping! 🚚
+                Add <strong>KES {(FREE_SHIPPING_THRESHOLD - cartTotalKes).toLocaleString()}</strong> more for free shipping! 🚚
               </p>
               <div className="mt-2 h-2 bg-amber-100 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-amber-400 rounded-full transition-all"
-                  style={{ width: `${Math.min(100, (cartTotal / 50) * 100)}%` }}
+                  style={{ width: `${Math.min(100, (cartTotalKes / FREE_SHIPPING_THRESHOLD) * 100)}%` }}
                 />
               </div>
             </div>
@@ -112,21 +117,21 @@ export default function Cart() {
             <div className="space-y-3 text-sm mb-5">
               <div className="flex justify-between text-slate-600">
                 <span>Subtotal ({cart.reduce((s, i) => s + i.qty, 0)} items)</span>
-                <span className="font-medium text-slate-800">${cartTotal.toFixed(2)}</span>
+                <span className="font-medium text-slate-800">KES {cartTotalKes.toLocaleString("en-KE", { maximumFractionDigits: 0 })}</span>
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>Shipping</span>
                 <span className={shipping === 0 ? "text-emerald-600 font-medium" : "font-medium text-slate-800"}>
-                  {shipping === 0 ? "FREE" : `$${shipping.toFixed(2)}`}
+                  {shipping === 0 ? "FREE" : `KES ${shipping.toLocaleString()}`}
                 </span>
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>Tax (8%)</span>
-                <span className="font-medium text-slate-800">${tax.toFixed(2)}</span>
+                <span className="font-medium text-slate-800">KES {tax.toLocaleString("en-KE", { maximumFractionDigits: 0 })}</span>
               </div>
               <div className="border-t border-slate-100 pt-3 flex justify-between font-bold text-slate-900 text-base">
                 <span>Total</span>
-                <span>${orderTotal.toFixed(2)}</span>
+                <span>KES {orderTotal.toLocaleString("en-KE", { maximumFractionDigits: 0 })}</span>
               </div>
             </div>
 
@@ -150,7 +155,7 @@ export default function Cart() {
             </Link>
 
             <Link to="/" className="block text-center text-sm text-slate-400 hover:text-violet-600 transition mt-4">
-              ← continue shoping
+              ← Continue Shopping
             </Link>
           </div>
         </div>

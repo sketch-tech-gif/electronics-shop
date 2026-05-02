@@ -1,7 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AppProvider, useApp } from './context/AppContext'
-import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import ToastContainer from './components/ui/ToastContainer'
 
@@ -20,6 +19,7 @@ const HelpPage       = lazy(() => import('./pages/helppage'))
 const ContactPage    = lazy(() => import('./pages/ContactPage'))
 const PrivacyPage    = lazy(() => import('./pages/PrivacyPage'))
 const TermsPage      = lazy(() => import('./pages/TermsPage'))
+const SitemapPage    = lazy(() => import('./pages/SitemapPage'))
 
 function Loader() {
   return (
@@ -62,20 +62,21 @@ export default function App() {
     <AppProvider>
       <BrowserRouter>
         <div className="min-h-screen bg-gray-100 flex flex-col">
-          <Navbar />
+          {/* Navbar removed — HomePage has its own built-in navbar */}
           <main className="flex-1">
             <Suspense fallback={<Loader />}>
               <Routes>
                 {/* Public */}
-                <Route path="/"        element={<HomePage />} />
-                <Route path="/products" element={<ProductsPage />} />
+                <Route path="/"            element={<HomePage />} />
+                <Route path="/products"    element={<ProductsPage />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
-                <Route path="/cart"    element={<CartPage />} />
-                <Route path="/about"   element={<AboutPage />} />
-                <Route path="/help"    element={<HelpPage />} />
-                <Route path="/contact" element={<ContactPage />} />
-                <Route path="/privacy" element={<PrivacyPage />} />
-                <Route path="/terms"   element={<TermsPage />} />
+                <Route path="/cart"        element={<CartPage />} />
+                <Route path="/about"       element={<AboutPage />} />
+                <Route path="/help"        element={<HelpPage />} />
+                <Route path="/contact"     element={<ContactPage />} />
+                <Route path="/privacy"     element={<PrivacyPage />} />
+                <Route path="/terms"       element={<TermsPage />} />
+                <Route path="/sitemap"     element={<SitemapPage />} />
 
                 {/* Protected */}
                 <Route path="/checkout"      element={<PrivateRoute><CheckoutPage /></PrivateRoute>} />
