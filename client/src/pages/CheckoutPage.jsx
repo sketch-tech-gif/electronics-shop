@@ -398,7 +398,7 @@ export default function CheckoutPage() {
 
               <div className="flex gap-2 mt-5">
                 <button onClick={() => setStep(0)} className="px-4 py-2.5 border border-gray-200 text-gray-500 hover:bg-gray-50 font-semibold rounded-xl text-xs transition">← Back</button>
-                <button onClick={next} className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-sm transition">Review Order →</button>
+                <button onClick={next} className="flex-1 bg-green-900 hover:bg-green-500 text-white font-bold py-1.5 rounded-xl text-sm transition">Confirm Payment →</button>
               </div>
             </div>
           )}
@@ -497,19 +497,8 @@ export default function CheckoutPage() {
 
             {/* Payment badges */}
             <div className="mt-4 pt-3 border-t border-gray-50">
-              <p className="text-[10px] text-gray-400 text-center mb-2 uppercase tracking-widest">Accepted</p>
-              <div className="flex flex-wrap gap-1 justify-center">
-                {[
-                  { name: "Visa",         bg: "#1a1f71" },
-                  { name: "M-Pesa",       bg: "#00a651" },
-                  { name: "PayPal",       bg: "#0070ba" },
-                  { name: "Airtel Money", bg: "#e4002b" },
-                ].map(p => (
-                  <span key={p.name} style={{ background: p.bg }} className="text-white text-[9px] font-bold px-2 py-1 rounded-lg">
-                    {p.name}
-                  </span>
-                ))}
-              </div>
+              <p className="text-[10px] text-gray-400 text-center mb-2 uppercase tracking-widest">S  h  o  p  2  5 4</p>
+              
             </div>
           </div>
         </div>

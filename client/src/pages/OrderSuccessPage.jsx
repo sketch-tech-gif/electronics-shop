@@ -16,14 +16,14 @@ export default function OrderSuccessPage() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
         </svg>
       </div>
-      <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Order Confirmed!</h1>
-      <p className="text-gray-500 mb-2">Thank you for shopping with TechStore.</p>
+      <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Order Confirmed successfully!</h1>
+      <p className="text-gray-500 mb-2">Thank you for shopping with us.</p>
       {latestOrder && (
         <p className="text-blue-600 font-bold mb-6">Order ID: {latestOrder.id}</p>
       )}
       <div className="bg-gray-50 rounded-2xl p-5 text-left space-y-2 mb-8 border border-gray-100">
-        <p className="text-sm text-gray-600">✅ Order confirmation sent to your email</p>
-        <p className="text-sm text-gray-600">📦 Estimated delivery: 3–5 business days</p>
+        <p className="text-sm text-gray-600">Your Order confirmation has been sent to your email</p>
+        <p className="text-sm text-gray-600">Estimated delivery: 3–5 business days</p>
         <p className="text-sm text-gray-600">🔄 Track your order in <Link to="/orders" className="text-blue-600 font-semibold hover:underline">My Orders</Link></p>
         <p className="text-sm text-gray-600">💬 Questions? <Link to="/help" className="text-blue-600 font-semibold hover:underline">Contact Support</Link></p>
       </div>
@@ -31,7 +31,7 @@ export default function OrderSuccessPage() {
         <Link to="/orders" className="px-6 py-3 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition">
           View Orders
         </Link>
-        <Link to="/products" className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition">
+        <Link to="/products" className="px-3 py-3 bg-red-400 hover:bg-violet-100 text-white font-bold rounded-xl transition">
           Continue Shopping
         </Link>
       </div>

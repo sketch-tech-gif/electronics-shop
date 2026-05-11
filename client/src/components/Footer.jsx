@@ -174,29 +174,11 @@ export default function Footer() {
         <div style={{ margin: "24px 0 18px", height: 1, background: "linear-gradient(90deg, transparent, #1e3a8a 30%, #f5a623 50%, #1e3a8a 70%, transparent)" }} />
 
         {/* Bottom bar */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        
             <span style={{ fontSize: 11, color: "#475569" }}>© {new Date().getFullYear()} <strong style={{ color: "#94a3b8" }}>Vantix Kenya</strong>. All rights reserved.</span>
-            <span style={{ fontSize: 11, color: "#475569" }}>🇰🇪 Made for Kenya</span>
+            <span style={{ fontSize: 11, color: "#475569" }}>🇰🇪 WELCOME</span>
           </div>
-          {/* Payment icons — wrap on mobile */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 11, color: "#475569" }}>Secure payments:</span>
-            {[
-              { src: "https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/min/flat/visa.svg", alt: "Visa" },
-              { src: "https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/min/flat/mastercard.svg", alt: "Mastercard" },
-              { src: "https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/min/flat/paypal.svg", alt: "PayPal" },
-            ].map(p => (
-              <span key={p.alt} style={{ background: "#fff", borderRadius: 5, padding: "3px 7px", display: "inline-flex", alignItems: "center", height: 28, boxShadow: "0 2px 6px rgba(0,0,0,0.35)" }}>
-                <img src={p.src} alt={p.alt} style={{ height: 18, width: "auto" }} />
-              </span>
-            ))}
-            <span style={{ background: "#fff", borderRadius: 5, padding: "2px 4px", display: "inline-flex", alignItems: "center", height: 28, boxShadow: "0 2px 6px rgba(0,0,0,0.35)" }}>
-              <MPesaLogo />
-            </span>
-          </div>
-        </div>
-      </div>
+      
     </footer>
   );
 }
