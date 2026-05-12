@@ -1,6 +1,8 @@
-// FILE: src/components/Navbar.jsx  (replaces the props-based version used by ProductsPage)
-// CHANGES ONLY: 1) fixed marquee bar added inside header  2) WhatsApp icon added before Wishlist
-// Everything else — layout, spacing, filters, categories, phone view — UNTOUCHED
+// FILE: src/components/Navbar.jsx
+// CHANGES:
+//   1) WhatsApp replaced with Phone "Contact Seller" icon (desktop + mobile)
+//   2) Mobile navbar: icons pushed to top-right, compact & organized layout
+//   3) Everything else untouched
 
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -97,7 +99,7 @@ export default function Navbar({
   return (
     <>
       <style>{`
-        /* ── ADDED: marquee ── */
+        /* ── marquee ── */
         @keyframes marqueeScroll { 0% { transform:translateX(0); } 100% { transform:translateX(-50%); } }
         .marquee-track { display:inline-flex; animation:marqueeScroll 28s linear infinite; }
         .marquee-track:hover { animation-play-state:paused; }
@@ -107,6 +109,8 @@ export default function Navbar({
           50%      { box-shadow:0 0 6px #00f5ff,0 0 16px #00f5ff,0 0 32px #00f5ff,0 0 60px #00bfff; }
         }
         .neon-avatar { animation:neonPulse 2s ease-in-out infinite; border:2px solid #00f5ff; }
+
+        /* ── Desktop icon buttons ── */
         .nav-icon-btn {
           display:flex; flex-direction:column; align-items:center; justify-content:center;
           padding:6px 12px; border-radius:10px; color:#374151; text-decoration:none;
@@ -122,6 +126,25 @@ export default function Navbar({
           background:#ef4444; font-size:10px; font-weight:800; color:#fff;
           display:flex; align-items:center; justify-content:center; line-height:1;
         }
+
+        /* ── Mobile icon buttons — compact square style ── */
+        .mob-icon-btn {
+          display:flex; flex-direction:column; align-items:center; justify-content:center;
+          padding:4px 6px; border-radius:8px; color:#374151; text-decoration:none;
+          transition:background .15s,color .15s; position:relative;
+          background:none; border:none; cursor:pointer; gap:1px;
+        }
+        .mob-icon-btn:hover { background:#eff6ff; color:#2563eb; }
+        .mob-icon-btn svg   { width:19px; height:19px; flex-shrink:0; }
+        .mob-icon-label     { font-size:9px; font-weight:700; color:#6b7280; white-space:nowrap; line-height:1; }
+        .mob-badge {
+          position:absolute; top:1px; right:2px;
+          min-width:15px; height:15px; padding:0 3px; border-radius:8px;
+          background:#ef4444; font-size:9px; font-weight:800; color:#fff;
+          display:flex; align-items:center; justify-content:center; line-height:1;
+        }
+
+        /* ── Mobile search ── */
         #mobile-search-btn { display:none !important; }
         @media (max-width:639px) { #mobile-search-btn { display:flex !important; } }
         .mobile-search-bar {
@@ -129,6 +152,8 @@ export default function Navbar({
           background:#fff; border-bottom:2px solid #2563eb;
           padding:10px 16px; z-index:49; box-shadow:0 4px 16px rgba(0,0,0,.08);
         }
+
+        /* ── Filter controls ── */
         .flt-select {
           border:1px solid #e5e7eb; border-radius:7px;
           padding:3px 6px 3px 8px; font-size:12px; color:#374151;
@@ -177,12 +202,57 @@ export default function Navbar({
         .scrollbar-hide::-webkit-scrollbar { display:none; }
         .scrollbar-hide { -ms-overflow-style:none; scrollbar-width:none; }
         .cat-filter-divider { width:1px; background:#e5e7eb; height:20px; flex-shrink:0; margin:0 8px; }
+
+        /* ── Mobile nav adjustments — top-right icon cluster ── */
+        @media (max-width:639px) {
+          .mobile-nav-row {
+            display:flex; align-items:center;
+            height:54px; padding:0 12px; gap:4px;
+          }
+          .mobile-nav-logo { flex-shrink:0; }
+          .mobile-nav-icons {
+            display:flex; align-items:center; gap:0; flex-shrink:0; margin-left:auto;
+          }
+        }
+
+        /* Expandable search bar that slides in below mobile nav row */
+        .mob-search-expand {
+          overflow:hidden;
+          max-height:0;
+          transition:max-height 0.22s ease, opacity 0.18s ease;
+          opacity:0;
+          background:#fff;
+          border-top:1px solid #f3f4f6;
+        }
+        .mob-search-expand.open {
+          max-height:60px;
+          opacity:1;
+        }
+        .mob-search-inner {
+          display:flex; align-items:center; gap:8px;
+          padding:8px 12px;
+        }
+        .mob-search-inner input {
+          flex:1; padding:7px 12px; font-size:13px; color:#374151;
+          border:1.5px solid #2563eb; border-radius:20px; outline:none;
+          background:#f9fafb;
+        }
+        .mob-search-inner input::placeholder { color:#9ca3af; }
+        .mob-search-submit {
+          flex-shrink:0; padding:7px 14px;
+          background:#2563eb; color:#fff; border:none; border-radius:20px;
+          font-size:12px; font-weight:700; cursor:pointer;
+        }
+        .mob-search-clear {
+          flex-shrink:0; background:none; border:none; font-size:18px;
+          color:#9ca3af; cursor:pointer; line-height:1; padding:0 2px;
+        }
       `}</style>
 
-      {/* ── FIXED header wrapping everything so marquee stays visible on scroll ── */}
+      {/* ── FIXED header ── */}
       <header className="fixed top-0 left-0 right-0 w-full z-50 shadow-sm" style={{ background:"#fff" }}>
 
-        {/* ── ADDED: scrolling marquee bar — fixed at very top ── */}
+        {/* ── Marquee bar ── */}
         <div style={{ background:"#08112a", color:"rgba(255,255,255,0.85)", fontSize:12, fontWeight:600, padding:"5px 0", overflow:"hidden", whiteSpace:"nowrap" }}>
           <div className="marquee-track">
             {[
@@ -200,8 +270,10 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* ── Main nav row ── */}
-        <div className="bg-white border-b border-gray-200">
+        {/* ════════════════════════════════
+            DESKTOP nav row (sm and above)
+            ════════════════════════════════ */}
+        <div className="bg-white border-b border-gray-200 hidden sm:block">
           <div className="w-full px-3 sm:px-5 lg:px-8">
             <div className="flex items-center h-16 gap-2 sm:gap-8">
 
@@ -217,7 +289,7 @@ export default function Navbar({
               </Link>
 
               {/* Desktop search */}
-              <form onSubmit={handleSearch} className="flex-1 hidden sm:flex items-center">
+              <form onSubmit={handleSearch} className="flex-1 flex items-center">
                 <div className="flex w-full items-center border-2 border-blue-600 rounded-full overflow-hidden bg-white shadow-sm">
                   <select onChange={(e) => dispatch({ type:"SET_FILTER", filter:{ category:e.target.value } })}
                     className="pl-4 pr-2 py-2.5 bg-transparent text-sm text-gray-600 focus:outline-none cursor-pointer capitalize border-r border-gray-200 shrink-0">
@@ -244,24 +316,15 @@ export default function Navbar({
                 </div>
               </form>
 
-              {/* Mobile search toggle */}
-              <button id="mobile-search-btn" onClick={() => setMobileSearchOpen(o => !o)}
-                className="nav-icon-btn" style={{ minWidth:40, padding:"6px 8px" }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width:22, height:22 }}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803 7.5 7.5 0 0016.803 15.803z"/>
-                </svg>
-                <span className="nav-icon-label">Search</span>
-              </button>
-
-              {/* Right icons */}
+              {/* Desktop right icons */}
               <div className="flex items-center gap-1 ml-auto sm:ml-0 sm:gap-3 shrink-0">
 
-                {/* ── ADDED: WhatsApp — same style as other icons ── */}
-                <a href="https://wa.me/254700000000" target="_blank" rel="noreferrer" className="nav-icon-btn hidden sm:flex">
-                  <svg viewBox="0 0 24 24" fill="currentColor" style={{ width:22, height:22, color:"#25d366" }}>
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                {/* ── Contact Seller (phone) — desktop ── */}
+                <a href="tel:+254700000000" className="nav-icon-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} style={{ width:22, height:22, color:"#16a34a" }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/>
                   </svg>
-                  <span className="nav-icon-label">WhatsApp</span>
+                  <span className="nav-icon-label">Contact Seller</span>
                 </a>
 
                 {/* Wishlist */}
@@ -325,18 +388,10 @@ export default function Navbar({
                       )}
                     </>
                   ) : (
-                    <>
-                      <Link to="/auth" className="nav-icon-btn sm:hidden">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0"/>
-                        </svg>
-                        <span className="nav-icon-label">Account</span>
-                      </Link>
-                      <div className="hidden sm:flex items-center gap-6 pl-4 border-l border-gray-200">
-                        <Link to="/auth" className="text-sm font-semibold text-gray-700 hover:text-blue-600 whitespace-nowrap px-2 py-1">Sign in</Link>
-                        <Link to="/auth?mode=register" className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-2 rounded-full whitespace-nowrap">Create account</Link>
-                      </div>
-                    </>
+                    <div className="hidden sm:flex items-center gap-6 pl-4 border-l border-gray-200">
+                      <Link to="/auth" className="text-sm font-semibold text-gray-700 hover:text-blue-600 whitespace-nowrap px-2 py-1">Sign in</Link>
+                      <Link to="/auth?mode=register" className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-2 rounded-full whitespace-nowrap">Create account</Link>
+                    </div>
                   )}
                 </div>
               </div>
@@ -344,22 +399,133 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* Mobile search dropdown */}
-        {mobileSearchOpen && (
-          <div className="sm:hidden mobile-search-bar">
-            <form onSubmit={handleSearch} className="flex items-center gap-2">
-              <div className="flex flex-1 items-center border-2 border-blue-600 rounded-full overflow-hidden bg-white">
-                <input type="text" value={searchVal} onChange={handleSearchChange}
-                  placeholder="Search products..." autoFocus
-                  className="flex-1 px-4 py-2 text-sm focus:outline-none bg-transparent"/>
-                {searchVal && (
-                  <button type="button" onClick={handleClear} className="pr-3 text-gray-400 hover:text-gray-600 text-lg">×</button>
+        {/* ════════════════════════════════
+            MOBILE nav row
+            Logo left · Icons tight-right · Expandable search bar
+            ════════════════════════════════ */}
+        <div className="sm:hidden bg-white border-b border-gray-200">
+          <div className="mobile-nav-row">
+
+            {/* Logo */}
+            <Link to="/" className="mobile-nav-logo flex items-center gap-1.5 shrink-0">
+              <VantixKenyaLogo size={30} />
+              <div className="flex flex-col leading-none">
+                <span className="font-black text-sm text-gray-900 tracking-tight">
+                  VANTIX<span style={{ color:"#f5a623" }}>.</span>
+                </span>
+                <span className="text-[8px] font-bold tracking-widest uppercase" style={{ color:"#6b7a99" }}>SHOP254</span>
+              </div>
+            </Link>
+
+            {/* ── Mobile icons: Search · Contact · Wishlist · Cart · Account — pushed right ── */}
+            <div className="mobile-nav-icons">
+
+              {/* Search icon — toggles expandable bar */}
+              <button onClick={() => setMobileSearchOpen(o => !o)} className="mob-icon-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} style={{ color: mobileSearchOpen ? "#2563eb" : "currentColor" }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803 7.5 7.5 0 0016.803 15.803z"/>
+                </svg>
+                <span className="mob-icon-label">Search</span>
+              </button>
+
+              {/* Contact Seller */}
+              <a href="tel:+254700000000" className="mob-icon-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} style={{ color:"#16a34a" }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/>
+                </svg>
+                <span className="mob-icon-label">Call</span>
+              </a>
+
+              {/* Wishlist */}
+              <Link to="/wishlist" className="mob-icon-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/>
+                </svg>
+                {wishlist.length > 0 && <span className="mob-badge">{wishlist.length > 9 ? "9+" : wishlist.length}</span>}
+                <span className="mob-icon-label">Wishlist</span>
+              </Link>
+
+              {/* Cart */}
+              <Link to="/cart" className="mob-icon-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/>
+                </svg>
+                {cartCount > 0 && <span className="mob-badge">{cartCount > 9 ? "9+" : cartCount}</span>}
+                <span className="mob-icon-label">Cart</span>
+              </Link>
+
+              {/* Account */}
+              <div className="relative" ref={userMenuRef}>
+                {user ? (
+                  <>
+                    <button onClick={() => setUserMenuOpen(o => !o)} className="mob-icon-btn">
+                      <div className="neon-avatar rounded-full flex items-center justify-center text-white font-black"
+                        style={{ width:22, height:22, fontSize:11, background:"linear-gradient(135deg,#0ea5e9,#06b6d4,#0891b2)" }}>
+                        {user.name[0].toUpperCase()}
+                      </div>
+                      <span className="mob-icon-label">{user.name.split(" ")[0].slice(0,6)}</span>
+                    </button>
+                    {userMenuOpen && (
+                      <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-xl shadow-xl border border-gray-100 z-50 py-1">
+                        <div className="px-4 py-3 border-b border-gray-100">
+                          <p className="font-semibold text-gray-800 text-sm">{user.name}</p>
+                          <p className="text-xs text-gray-500">{user.email}</p>
+                        </div>
+                        {[
+                          { to:"/account",  label:"My Account",                    d:"M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0" },
+                          { to:"/orders",   label:"My Orders",                     d:"M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" },
+                          { to:"/wishlist", label:`Wishlist (${wishlist.length})`, d:"M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" },
+                        ].map(item => (
+                          <Link key={item.to} to={item.to} onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4 shrink-0">
+                              <path strokeLinecap="round" strokeLinejoin="round" d={item.d}/>
+                            </svg>
+                            {item.label}
+                          </Link>
+                        ))}
+                        <div className="border-t border-gray-100 mt-1">
+                          <button onClick={() => { logout(); setUserMenuOpen(false); }}
+                            className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4 shrink-0">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"/>
+                            </svg>
+                            Sign Out
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <Link to="/auth" className="mob-icon-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0"/>
+                    </svg>
+                    <span className="mob-icon-label">Sign in</span>
+                  </Link>
                 )}
               </div>
-              <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-semibold shrink-0">Go</button>
+            </div>
+
+          </div>
+
+          {/* ── Expandable search bar — slides in below nav row ── */}
+          <div className={`mob-search-expand${mobileSearchOpen ? " open" : ""}`}>
+            <form onSubmit={handleSearch} className="mob-search-inner">
+              <input
+                type="text"
+                value={searchVal}
+                onChange={handleSearchChange}
+                placeholder="Search products…"
+                autoFocus={mobileSearchOpen}
+              />
+              {searchVal && (
+                <button type="button" onClick={handleClear} className="mob-search-clear">×</button>
+              )}
+              <button type="submit" className="mob-search-submit">Go</button>
             </form>
           </div>
-        )}
+        </div>
 
         {/* ── Category + filter row — desktop ── */}
         <div className="border-t border-gray-100 hidden sm:block bg-white">
@@ -464,7 +630,7 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* ── Category nav — mobile ONLY — untouched ── */}
+        {/* ── Category nav — mobile ONLY ── */}
         <div className="border-t border-gray-100 sm:hidden bg-white">
           <div className="flex items-center gap-1 overflow-x-auto px-3 py-1.5 scrollbar-hide">
             {CATEGORIES.map((cat) => (
@@ -477,7 +643,7 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* Mobile filter button — untouched */}
+        {/* Mobile filter button */}
         {showFilterBar && (
           <div className="border-t border-gray-100 sm:hidden bg-gray-50">
             <div className="flex items-center gap-3 px-3 py-2">
