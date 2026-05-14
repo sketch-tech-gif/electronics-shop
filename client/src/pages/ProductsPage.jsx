@@ -143,102 +143,148 @@ export default function ProductsPage({
   };
 
   return (
-    <div
-      style={{ boxSizing: "border-box", width: "100%", overflowX: "hidden" }}
-      className="pt-16 md:pt-36 px-3 sm:px-6 lg:px-8 pb-10"
-    >
-      {/* Mobile filter drawer */}
-      {mobileFilterOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileFilterOpen(false)} />
-          <div className="absolute left-0 top-0 bottom-0 w-72 bg-white p-4 overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-bold text-gray-900">Filters</h2>
-              <button onClick={() => setMobileFilterOpen(false)}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+    <>
+      {/*
+        ─── NAVBAR HEIGHT REFERENCE ───────────────────────────────────────────
+        Mobile  (~< 640px):
+          marquee  ~24px
+          search   ~48px
+          cats     ~38px
+          tabbar   ~56px (fixed bottom — no top offset needed)
+          TOTAL TOP ≈ 110px  → use paddingTop: 118px
 
-            <div className="mb-5">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Price range (KES)</p>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number" min="0" placeholder="Min"
-                  value={mobileMinInput}
-                  onChange={e => setMobileMinInput(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-                />
-                <span className="text-gray-400 text-sm shrink-0">–</span>
-                <input
-                  type="number" min="0" placeholder="Max"
-                  value={mobileMaxInput}
-                  onChange={e => setMobileMaxInput(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-                />
-              </div>
-              <button onClick={applyMobilePrice}
-                className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2 rounded-lg transition">
-                Apply
-              </button>
-              {(priceMin > 0 || priceMax !== Infinity) && (
-                <button
-                  onClick={() => { setPriceMin(0); setPriceMax(Infinity); setMobileMinInput(""); setMobileMaxInput(""); }}
-                  className="mt-1.5 w-full border border-gray-200 text-gray-500 text-xs py-1.5 rounded-lg hover:border-red-300 hover:text-red-500 transition">
-                  Clear price filter
+        Desktop (≥ 640px):
+          marquee     ~24px
+          search      ~48px
+          icon row    ~40px
+          cats+filter ~70px  (cats ~38px + filter bar ~32px when shown)
+          TOTAL TOP ≈ 182px → use paddingTop: 190px
+
+        Add an extra 8px buffer so the first product card is never kissing the bar.
+        ───────────────────────────────────────────────────────────────────────
+      */}
+      <style>{`
+        .products-page-wrap {
+          box-sizing: border-box;
+          width: 100%;
+          overflow-x: hidden;
+          /* mobile: navbar ≈ 110px + 8px buffer + 56px bottom tab */
+          padding-top: 118px;
+          padding-bottom: 72px;
+          padding-left: 12px;
+          padding-right: 12px;
+        }
+        @media (min-width: 640px) {
+          .products-page-wrap {
+            /* desktop: navbar ≈ 182px + 8px buffer, no bottom tabbar */
+            padding-top: 190px;
+            padding-bottom: 40px;
+            padding-left: 24px;
+            padding-right: 24px;
+          }
+        }
+        @media (min-width: 1024px) {
+          .products-page-wrap {
+            padding-left: 32px;
+            padding-right: 32px;
+          }
+        }
+      `}</style>
+
+      <div className="products-page-wrap">
+        {/* Mobile filter drawer */}
+        {mobileFilterOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <div className="absolute inset-0 bg-black/50" onClick={() => setMobileFilterOpen(false)} />
+            <div className="absolute left-0 top-0 bottom-0 w-72 bg-white p-4 overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-bold text-gray-900">Filters</h2>
+                <button onClick={() => setMobileFilterOpen(false)}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
-              )}
-            </div>
-
-            <div className="mb-5">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Brand</p>
-              <div className="space-y-2">
-                {BRANDS.map(brand => (
-                  <label key={brand} className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox"
-                      checked={selectedBrands.includes(brand)}
-                      onChange={() => setSelectedBrands(prev =>
-                        prev.includes(brand) ? prev.filter(x => x !== brand) : [...prev, brand]
-                      )}
-                      className="w-4 h-4 text-blue-600 rounded border-gray-300" />
-                    <span className="text-sm text-gray-700">{brand}</span>
-                  </label>
-                ))}
               </div>
+
+              <div className="mb-5">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Price range (KES)</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number" min="0" placeholder="Min"
+                    value={mobileMinInput}
+                    onChange={e => setMobileMinInput(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  />
+                  <span className="text-gray-400 text-sm shrink-0">–</span>
+                  <input
+                    type="number" min="0" placeholder="Max"
+                    value={mobileMaxInput}
+                    onChange={e => setMobileMaxInput(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <button onClick={applyMobilePrice}
+                  className="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2 rounded-lg transition">
+                  Apply
+                </button>
+                {(priceMin > 0 || priceMax !== Infinity) && (
+                  <button
+                    onClick={() => { setPriceMin(0); setPriceMax(Infinity); setMobileMinInput(""); setMobileMaxInput(""); }}
+                    className="mt-1.5 w-full border border-gray-200 text-gray-500 text-xs py-1.5 rounded-lg hover:border-red-300 hover:text-red-500 transition">
+                    Clear price filter
+                  </button>
+                )}
+              </div>
+
+              <div className="mb-5">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Brand</p>
+                <div className="space-y-2">
+                  {BRANDS.map(brand => (
+                    <label key={brand} className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox"
+                        checked={selectedBrands.includes(brand)}
+                        onChange={() => setSelectedBrands(prev =>
+                          prev.includes(brand) ? prev.filter(x => x !== brand) : [...prev, brand]
+                        )}
+                        className="w-4 h-4 text-blue-600 rounded border-gray-300" />
+                      <span className="text-sm text-gray-700">{brand}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <button onClick={() => { handleResetAll(); setMobileFilterOpen(false); }}
+                className="w-full border border-gray-300 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50 transition">
+                Reset All
+              </button>
             </div>
-
-            <button onClick={() => { handleResetAll(); setMobileFilterOpen(false); }}
-              className="w-full border border-gray-300 text-gray-600 text-sm py-2 rounded-lg hover:bg-gray-50 transition">
-              Reset All
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Products grid */}
-      <div className="relative">
-        <Watermark />
-        {filtered.length === 0 ? (
-          <div className="relative z-10 bg-white rounded-xl p-12 text-center">
-            <div className="text-5xl mb-4">🔍</div>
-            <h3 className="font-bold text-gray-800 text-lg mb-2">No products found</h3>
-            <p className="text-gray-500 mb-4">Try adjusting your search or filters</p>
-            <button onClick={handleResetAll}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700">
-              Clear Filters
-            </button>
-          </div>
-        ) : viewMode === "grid" ? (
-          <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
-            {filtered.map(p => <ProductCard key={p.id} product={p} />)}
-          </div>
-        ) : (
-          <div className="relative z-10 flex flex-col gap-3">
-            {filtered.map(p => <ListCard key={p.id} product={p} />)}
           </div>
         )}
+
+        {/* Products grid */}
+        <div className="relative">
+          <Watermark />
+          {filtered.length === 0 ? (
+            <div className="relative z-10 bg-white rounded-xl p-12 text-center">
+              <div className="text-5xl mb-4">🔍</div>
+              <h3 className="font-bold text-gray-800 text-lg mb-2">No products found</h3>
+              <p className="text-gray-500 mb-4">Try adjusting your search or filters</p>
+              <button onClick={handleResetAll}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700">
+                Clear Filters
+              </button>
+            </div>
+          ) : viewMode === "grid" ? (
+            <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
+              {filtered.map(p => <ProductCard key={p.id} product={p} />)}
+            </div>
+          ) : (
+            <div className="relative z-10 flex flex-col gap-3">
+              {filtered.map(p => <ListCard key={p.id} product={p} />)}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

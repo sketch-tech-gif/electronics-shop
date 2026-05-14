@@ -1,12 +1,13 @@
 // FILE: src/App.jsx
 
-import { lazy, Suspense, useState } from 'react'
+import { lazy, Suspense, useState, useMemo } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AppProvider, useApp } from './context/AppContext'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import ToastContainer from './components/ui/ToastContainer'
-import { BRANDS } from './data/products'
+import { BRANDS, products } from './data/products'
+import { USD_TO_KSH } from './components/ProductCard'
 
 const HomePage      = lazy(() => import('./pages/HomePage'))
 const ProductsPage  = lazy(() => import('./pages/ProductsPage'))
@@ -24,6 +25,7 @@ const ContactPage   = lazy(() => import('./pages/ContactPage'))
 const PrivacyPage   = lazy(() => import('./pages/PrivacyPage'))
 const TermsPage     = lazy(() => import('./pages/TermsPage'))
 const SitemapPage   = lazy(() => import('./pages/SitemapPage'))
+const ReturnsPage   = lazy(() => import('./pages/ReturnsPage'))
 
 const SORT_OPTIONS = [
   { value: "default",    label: "Featured" },
@@ -69,17 +71,15 @@ function AuthRoute({ children }) {
   return children
 }
 
-// Wrapper so we can read location inside BrowserRouter
 function AppShell() {
   const location = useLocation()
   const { filters, dispatch } = useApp()
   const isProductsPage = location.pathname === '/products'
 
-  // Filter state — only active on /products, but lives here so Navbar always renders
-  const [viewMode,        setViewMode]        = useState("grid")
-  const [selectedBrands,  setSelectedBrands]  = useState([])
-  const [priceMin,        setPriceMin]        = useState(0)
-  const [priceMax,        setPriceMax]        = useState(Infinity)
+  const [viewMode, setViewMode]           = useState("grid")
+  const [selectedBrands, setSelectedBrands] = useState([])
+  const [priceMin, setPriceMin]           = useState(0)
+  const [priceMax, setPriceMax]           = useState(Infinity)
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false)
 
   const resetAll = () => {
@@ -89,11 +89,29 @@ function AppShell() {
     setPriceMax(Infinity)
   }
 
+  // FIX: compute filteredCount here so Navbar can display it
+  const filteredCount = useMemo(() => {
+    if (!isProductsPage) return 0
+    let result = [...products]
+    if (filters.category !== "all") result = result.filter(p => p.category === filters.category)
+    if (selectedBrands.length > 0)  result = result.filter(p => selectedBrands.includes(p.brand))
+    const minUSD = priceMin / USD_TO_KSH
+    const maxUSD = priceMax === Infinity ? Infinity : priceMax / USD_TO_KSH
+    result = result.filter(p => p.price >= minUSD && p.price <= maxUSD)
+    return result.length
+  }, [isProductsPage, filters.category, selectedBrands, priceMin, priceMax])
+
+  // FIX: toggle brand properly
+  const handleToggleBrand = (brand) => {
+    setSelectedBrands(prev =>
+      prev.includes(brand) ? prev.filter(x => x !== brand) : [...prev, brand]
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       <Navbar
-        // Filter bar props — only meaningful on /products, Navbar hides them elsewhere via showFilterBar check
-        filteredCount={undefined}        // ProductsPage will pass this via context/callback if needed; or leave undefined — Navbar won't show the count
+        filteredCount={filteredCount}
         sortValue={filters.sort}
         onSortChange={(val) => dispatch({ type: "SET_FILTER", filter: { sort: val } })}
         sortOptions={isProductsPage ? SORT_OPTIONS : undefined}
@@ -104,9 +122,7 @@ function AppShell() {
         activePriceMax={priceMax}
         brands={BRANDS}
         selectedBrands={selectedBrands}
-        onToggleBrand={(b) => setSelectedBrands(prev =>
-          prev.includes(b) ? prev.filter(x => x !== b) : [...prev, b]
-        )}
+        onToggleBrand={handleToggleBrand}
         onResetAll={resetAll}
         onOpenMobileFilters={() => setMobileFilterOpen(true)}
       />
@@ -114,42 +130,40 @@ function AppShell() {
       <main className="flex-1">
         <Suspense fallback={<Loader />}>
           <Routes>
-            {/* Public */}
-            <Route path="/"            element={<HomePage />} />
-            <Route path="/products"    element={
-              <ProductsPage
-                viewMode={viewMode}
-                setViewMode={setViewMode}
-                selectedBrands={selectedBrands}
-                setSelectedBrands={setSelectedBrands}
-                priceMin={priceMin}
-                setPriceMin={setPriceMin}
-                priceMax={priceMax}
-                setPriceMax={setPriceMax}
-                mobileFilterOpen={mobileFilterOpen}
-                setMobileFilterOpen={setMobileFilterOpen}
-                resetAll={resetAll}
-              />
-            } />
+            <Route path="/" element={<HomePage />} />
+            <Route
+              path="/products"
+              element={
+                <ProductsPage
+                  viewMode={viewMode}
+                  setViewMode={setViewMode}
+                  selectedBrands={selectedBrands}
+                  setSelectedBrands={setSelectedBrands}
+                  priceMin={priceMin}
+                  setPriceMin={setPriceMin}
+                  priceMax={priceMax}
+                  setPriceMax={setPriceMax}
+                  mobileFilterOpen={mobileFilterOpen}
+                  setMobileFilterOpen={setMobileFilterOpen}
+                  resetAll={resetAll}
+                />
+              }
+            />
             <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/cart"        element={<CartPage />} />
-            <Route path="/about"       element={<AboutPage />} />
-            <Route path="/help"        element={<HelpPage />} />
-            <Route path="/contact"     element={<ContactPage />} />
-            <Route path="/privacy"     element={<PrivacyPage />} />
-            <Route path="/terms"       element={<TermsPage />} />
-            <Route path="/sitemap"     element={<SitemapPage />} />
-
-            {/* Protected */}
-            <Route path="/checkout"      element={<PrivateRoute><CheckoutPage /></PrivateRoute>} />
-            <Route path="/wishlist"      element={<PrivateRoute><WishlistPage /></PrivateRoute>} />
-            <Route path="/orders"        element={<PrivateRoute><OrdersPage /></PrivateRoute>} />
-            <Route path="/account"       element={<PrivateRoute><AccountPage /></PrivateRoute>} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/help" element={<HelpPage />} />
+            <Route path="/returns" element={<ReturnsPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/sitemap" element={<SitemapPage />} />
+            <Route path="/checkout" element={<PrivateRoute><CheckoutPage /></PrivateRoute>} />
+            <Route path="/wishlist" element={<PrivateRoute><WishlistPage /></PrivateRoute>} />
+            <Route path="/orders" element={<PrivateRoute><OrdersPage /></PrivateRoute>} />
+            <Route path="/account" element={<PrivateRoute><AccountPage /></PrivateRoute>} />
             <Route path="/order-success" element={<PrivateRoute><OrderSuccess /></PrivateRoute>} />
-
-            {/* Auth */}
             <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
-
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>

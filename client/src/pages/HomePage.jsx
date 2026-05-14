@@ -1,5 +1,5 @@
 // FILE: src/pages/HomePage.jsx
-// Jumia-inspired layout: top promo bar, navbar, category sidebar + hero banner,
+// Jumia-inspired layout: top promo bar, navbar (NO search bar), category sidebar + hero banner,
 // quick-category icon row (3D rotating cubes), flash sale, featured products — Vantix indigo palette
 
 import { useState, useEffect, useRef } from "react";
@@ -32,9 +32,6 @@ const GLOBAL_CSS = `
   html, body { overflow-x: hidden; width: 100%; }
 
   .vx-page { width: 100%; max-width: 100%; overflow-x: hidden; background: #f3f4f6; }
-
-  .vx-spacer { height: 40px; }
-  @media (min-width: 768px) { .vx-spacer { height: 40px; } }
 
   @keyframes vxTicker {
     0%   { transform: translateX(0); }
@@ -184,33 +181,6 @@ const GLOBAL_CSS = `
     white-space: nowrap;
     margin-top: 2px;
   }
-
-  /* ── Live Search Dropdown ── */
-  .vx-search-drop {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 12px 40px rgba(55,48,163,0.18);
-    border: 1.5px solid #e0e7ff;
-    z-index: 9999;
-    max-height: 420px;
-    overflow-y: auto;
-  }
-  .vx-search-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
-    cursor: pointer;
-    border-bottom: 1px solid #f3f4f6;
-    text-decoration: none;
-    transition: background 0.12s;
-  }
-  .vx-search-item:hover { background: #e0e7ff; }
-  .vx-search-item:last-child { border-bottom: none; }
 `;
 
 // ─── Countdown ────────────────────────────────────────────────────────────────
@@ -488,41 +458,6 @@ function QuickCats({ dispatch }) {
   );
 }
 
-// ─── Side menu (mobile) ───────────────────────────────────────────────────────
-function SideMenu({ open, onClose, dispatch }) {
-  return (
-    <>
-      {open && <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(30,27,75,0.45)", zIndex: 300 }} />}
-      <div style={{
-        position: "fixed", top: 0, left: 0, width: 270, height: "100vh",
-        background: C.white, boxShadow: "6px 0 32px rgba(30,27,75,0.14)",
-        zIndex: 301,
-        transform: open ? "translateX(0)" : "translateX(-100%)",
-        transition: "transform 0.26s cubic-bezier(0.4,0,0.2,1)",
-        overflowY: "auto",
-      }}>
-        <div style={{ background: "#2d2a6e", padding: "18px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ color: C.white, fontWeight: 800, fontSize: 15 }}>VANTIX<span style={{ color: C.amber }}>.</span> SHOP254</span>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 7, color: C.white, width: 28, height: 28, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
-        </div>
-        <div style={{ padding: "12px 16px" }}>
-          <p style={{ fontSize: 10, fontWeight: 800, color: C.gray400, letterSpacing: "1px", textTransform: "uppercase", marginBottom: 10 }}>Browse</p>
-          {CATEGORIES.filter(c => c !== "all").map(cat => {
-            const icons = { phones:"📱", laptops:"💻", audio:"🎧", cameras:"📷", gaming:"🕹️", tablets:"📟", accessories:"🎮" };
-            return (
-              <Link key={cat} to={`/products?category=${cat}`}
-                onClick={() => { dispatch({ type: "SET_FILTER", filter: { category: cat } }); onClose(); }}
-                style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 10, textDecoration: "none", color: C.gray900, marginBottom: 2, fontSize: 14, fontWeight: 500, textTransform: "capitalize" }}>
-                <span style={{ fontSize: 20 }}>{icons[cat] || "🛍️"}</span> {cat}
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-    </>
-  );
-}
-
 // ─── Promo bar ────────────────────────────────────────────────────────────────
 function PromoBar() {
   const items = [
@@ -546,233 +481,70 @@ function PromoBar() {
   );
 }
 
-// ─── Live Search Dropdown ─────────────────────────────────────────────────────
-const USD_TO_KSH = 130;
-const toKsh = (usd) => `KES ${Math.round(usd * USD_TO_KSH).toLocaleString("en-KE")}`;
-
-function SearchDropdown({ query, onClose }) {
-  const navigate = useNavigate();
-  if (!query || query.trim().length < 2) return null;
-
-  const q = query.toLowerCase().trim();
-  const results = products
-    .filter(p =>
-      p.title.toLowerCase().includes(q) ||
-      (p.brand && p.brand.toLowerCase().includes(q)) ||
-      (p.category && p.category.toLowerCase().includes(q))
-    )
-    .slice(0, 8);
-
-  if (results.length === 0) {
-    return (
-      <div className="vx-search-drop">
-        <div style={{ padding: "16px 14px", textAlign: "center", color: C.gray400, fontSize: 13 }}>
-          No products found for "<strong style={{ color: C.gray600 }}>{query}</strong>"
-        </div>
-      </div>
-    );
-  }
-
+// ─── Main Navbar — logo + categories only (NO category pills row, NO action icons) ──
+function MainNav({ dispatch }) {
   return (
-    <div className="vx-search-drop">
-      <div style={{ padding: "8px 14px 4px", fontSize: 10, fontWeight: 800, color: C.gray400, letterSpacing: "1px", textTransform: "uppercase", borderBottom: `1px solid ${C.gray100}` }}>
-        {results.length} result{results.length !== 1 ? "s" : ""} for "{query}"
-      </div>
-      {results.map(p => (
-        <Link key={p.id} to={`/product/${p.id}`} className="vx-search-item" onClick={onClose}>
-          <img src={p.image} alt={p.title} style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 8, flexShrink: 0, border: `1px solid ${C.gray100}` }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 12.5, fontWeight: 600, color: C.gray900, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</p>
-            <p style={{ fontSize: 11, color: C.gray400, marginBottom: 2, textTransform: "capitalize" }}>{p.brand} · {p.category}</p>
-            <p style={{ fontSize: 12, fontWeight: 800, color: C.indigo }}>{toKsh(p.price)}</p>
-          </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.gray400} strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
-        </Link>
-      ))}
-      {products.filter(p => p.title.toLowerCase().includes(q) || (p.brand && p.brand.toLowerCase().includes(q))).length > 8 && (
-        <div
-          onClick={() => { navigate(`/products?search=${encodeURIComponent(query)}`); onClose(); }}
-          style={{ padding: "10px 14px", textAlign: "center", fontSize: 12.5, fontWeight: 700, color: C.indigo, cursor: "pointer", borderTop: `1px solid ${C.gray100}` }}
-        >
-          See all results for "{query}" →
-        </div>
-      )}
-    </div>
-  );
-}
+    <nav style={{
+      background: "linear-gradient(90deg, #1e1b4b 0%, #3730a3 35%, #4f46e5 65%, #818cf8 100%)",
+      boxShadow: "0 3px 20px rgba(55,48,163,0.35)",
+      position: "fixed",
+      top: 36,
+      left: 0, right: 0,
+      zIndex: 200,
+      height: 58,
+      display: "flex",
+      alignItems: "center",
+    }}>
+      <div className="vx-pad" style={{ display:"flex", alignItems:"center", gap:18, maxWidth:1400, margin:"0 auto", width:"100%" }}>
 
-// ─── Main Navbar ──────────────────────────────────────────────────────────────
-function MainNav({ cartCount, wishlist, user, logout, dispatch, onMenuOpen }) {
-  const [searchVal, setSearchVal] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const userMenuRef = useRef(null);
-  const searchRef = useRef(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    function h(e) {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) setUserMenuOpen(false);
-      if (searchRef.current && !searchRef.current.contains(e.target)) setSearchOpen(false);
-    }
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-
-  const handleSearchChange = (e) => {
-    setSearchVal(e.target.value);
-    setSearchOpen(e.target.value.trim().length >= 2);
-  };
-
-  const handleSearchSubmit = () => {
-    if (searchVal.trim()) {
-      navigate(`/products?search=${encodeURIComponent(searchVal.trim())}`);
-      setSearchOpen(false);
-    }
-  };
-
-  const handleSearchKeyDown = (e) => {
-    if (e.key === "Enter") handleSearchSubmit();
-    if (e.key === "Escape") { setSearchOpen(false); setSearchVal(""); }
-  };
-
-  return (
-    <nav style={{ background: C.white, borderBottom: `2px solid ${C.gray200}`, boxShadow: "0 2px 12px rgba(55,48,163,0.08)", boxShadow: "0 2px 12px rgba(55,48,163,0.08)", position: "fixed", top: 36, left: 0, right: 0, zIndex: 200 }}>
-      <div className="vx-pad" style={{ height: 60, display: "flex", alignItems: "center", gap: 12, maxWidth: 1400, margin: "0 auto" }}>
-
-        <Link to="/" style={{ display:"flex", alignItems:"center", gap:9, textDecoration:"none", flexShrink:0 }}>
-          <div style={{ width:34, height:34, background:`linear-gradient(140deg,${C.indigo},${C.indigoDark})`, borderRadius:9, display:"flex", alignItems:"center", justifyContent:"center" }}>
-            <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
-              <path d="M10 2L18 7V13L10 18L2 13V7L10 2Z" stroke="#f5a623" strokeWidth="1.6" fill="rgba(245,166,35,0.12)"/>
-              <circle cx="10" cy="10" r="3" fill="#f5a623"/>
+        {/* Logo */}
+        <Link to="/" style={{ display:"flex", alignItems:"center", gap:10, textDecoration:"none", flexShrink:0 }}>
+          <div style={{
+            width: 42, height: 42,
+            background: "linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #f97316 100%)",
+            borderRadius: 11,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: "0 0 0 2.5px rgba(255,255,255,0.3), 0 4px 14px rgba(245,158,11,0.5)",
+            flexShrink: 0,
+          }}>
+            <svg width="24" height="24" viewBox="0 0 20 20" fill="none">
+              <path d="M10 2L18 7V13L10 18L2 13V7L10 2Z"
+                stroke="#fff" strokeWidth="1.4" fill="rgba(255,255,255,0.18)" />
+              <circle cx="10" cy="10" r="3.2" fill="#fff" />
             </svg>
           </div>
-          <div style={{ lineHeight:1 }}>
-            <div style={{ fontWeight:900, fontSize:17, color:C.indigoDark, letterSpacing:"-0.3px" }}>VANTIX<span style={{ color:C.amber }}>.</span></div>
-            <div style={{ fontSize:9, fontWeight:700, color:C.gray400, letterSpacing:"1.4px", textTransform:"uppercase" }}>SHOP254</div>
+          <div style={{ lineHeight:1.1 }}>
+            <div style={{ fontWeight:900, fontSize:20, color:"#fff", letterSpacing:"-0.5px", lineHeight:1, textShadow:"0 1px 6px rgba(0,0,0,0.25)" }}>
+              VANTIX<span style={{ color:"#fbbf24" }}>.</span>
+            </div>
+            <div style={{ fontSize:8.5, fontWeight:700, color:"rgba(255,255,255,0.65)", letterSpacing:"2.5px", textTransform:"uppercase", marginTop:2 }}>
+              SHOP254
+            </div>
           </div>
         </Link>
 
-        <div
-          ref={searchRef}
-          className="hidden sm:flex"s
-          style={{ flex: 1, position: "relative", border: `2px solid ${C.indigo}`, borderRadius: 8, overflow: "visible", alignItems: "center", background: C.white }}
-        >
-          <div style={{ display: "flex", alignItems: "center", width: "100%", overflow: "hidden", borderRadius: 6 }}>
-            <select style={{ padding:"0 10px 0 12px", height:38, fontSize:12.5, color:C.gray600, border:"none", background:"transparent", borderRight:`1px solid ${C.gray200}`, cursor:"pointer", outline:"none", flexShrink: 0 }}>
-              <option>All Categories</option>
-              {CATEGORIES.filter(c=>c!=="all").map(c=>(
-                <option key={c} style={{ textTransform:"capitalize" }}>{c}</option>
-              ))}
-            </select>
-            <input
-              type="text"
-              placeholder="Search products, brands and more..."
-              value={searchVal}
-              onChange={handleSearchChange}
-              onKeyDown={handleSearchKeyDown}
-              onFocus={() => searchVal.trim().length >= 2 && setSearchOpen(true)}
-              style={{ flex:1, border:"none", background:"transparent", padding:"0 12px", height:38, fontSize:13, color:C.gray900, outline:"none", minWidth: 0 }}
-            />
-            {searchVal && (
-              <button onClick={() => { setSearchVal(""); setSearchOpen(false); }} style={{ background:"none", border:"none", cursor:"pointer", padding:"0 8px", color:C.gray400, fontSize:16, display:"flex", alignItems:"center", flexShrink: 0 }}>✕</button>
-            )}
-            <button onClick={handleSearchSubmit} style={{ height:38, padding:"0 18px", background:C.indigo, color:C.white, border:"none", cursor:"pointer", fontSize:13, fontWeight:700, display:"flex", alignItems:"center", gap:6, flexShrink:0 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
-              Search
-            </button>
-          </div>
-          {searchOpen && (
-            <SearchDropdown query={searchVal} onClose={() => { setSearchOpen(false); setSearchVal(""); }} />
-          )}
-        </div>
+        {/* Divider */}
+        <div style={{ width:1, height:30, background:"rgba(255,255,255,0.22)", flexShrink:0 }} />
 
-        <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink: 0, marginLeft: "auto" }}>
-          <a href="https://wa.me/254700000000" target="_blank" rel="noreferrer"
-            style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"5px 8px", textDecoration:"none", borderRadius:8, color:C.gray600, minWidth:48 }}
-            className="hover:bg-indigo-50 hidden md:flex">
-            <svg viewBox="0 0 24 24" fill="#25d366" style={{ width:20, height:20 }}>
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-              <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.555 4.116 1.528 5.843L0 24l6.335-1.508A11.932 11.932 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.814 9.814 0 01-5.012-1.371l-.36-.214-3.732.888.936-3.63-.234-.373A9.817 9.817 0 012.182 12C2.182 6.58 6.58 2.182 12 2.182c5.421 0 9.818 4.398 9.818 9.818 0 5.421-4.397 9.818-9.818 9.818z"/>
-            </svg>
-           <span style={{ fontSize:9, fontWeight:700, color: C.gray400 }}>...</span>
-
-          </a>
-
-          <Link to="/wishlist" style={{ position:"relative", display:"flex", flexDirection:"column", alignItems:"center", padding:"5px 8px", color:C.gray600, textDecoration:"none", borderRadius:8, minWidth:48 }} className="hover:bg-indigo-50">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" style={{ width:20, height:20 }}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            {wishlist?.length > 0 && (
-              <span style={{ fontSize:9, fontWeight:700, color: C.gray400 }}>...</span>
-
-            )}
-            <span style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.85)" }}>Chat</span>
-
+        {/* Categories */}
+        <div style={{ display:"flex", gap:2, overflowX:"auto", scrollbarWidth:"none", flex:1, alignItems:"center" }}>
+          <Link to="/products"
+            onClick={() => dispatch({ type:"SET_FILTER", filter:{ category:"all" } })}
+            style={{ padding:"0 15px", height:32, display:"flex", alignItems:"center", fontSize:13, fontWeight:700, color:"#fff", background:"rgba(255,255,255,0.2)", border:"1px solid rgba(255,255,255,0.35)", borderRadius:20, textDecoration:"none", whiteSpace:"nowrap", flexShrink:0 }}>
+            All
           </Link>
-
-          <Link to="/cart" style={{ position:"relative", display:"flex", flexDirection:"column", alignItems:"center", padding:"5px 8px", color:C.gray600, textDecoration:"none", borderRadius:8, minWidth:48 }} className="hover:bg-indigo-50">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" style={{ width:20, height:20 }}>
-              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-              <line x1="3" y1="6" x2="21" y2="6"/>
-              <path d="M16 10a4 4 0 0 1-8 0"/>
-            </svg>
-            {cartCount > 0 && (
-              <span style={{ fontSize:9, fontWeight:700, color: C.gray400 }}>...</span>
-
-            )}
-           <span style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.85)" }}>Wishlist</span>
-
-          </Link>
-
-          <div style={{ position:"relative" }} ref={userMenuRef}>
-            {user ? (
-              <>
-                <button onClick={() => setUserMenuOpen(o=>!o)} style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"4px 8px", background:"none", border:"none", cursor:"pointer", borderRadius:8, minWidth:48 }} className="hover:bg-indigo-50">
-                  <div className="vx-neon-av" style={{ width:30, height:30, borderRadius:"50%", background:`linear-gradient(135deg,#0ea5e9,#6366f1)`, color:C.white, display:"flex", alignItems:"center", justifyContent:"center", fontWeight:800, fontSize:13 }}>{user.name[0].toUpperCase()}</div>
-                  <span style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.55)" }}>...</span>
-                </button>
-                {userMenuOpen && (
-                  <div style={{ position:"absolute", right:0, top:"calc(100% + 4px)", width:200, background:C.white, borderRadius:12, boxShadow:"0 8px 32px rgba(30,27,75,0.14)", border:`1px solid ${C.gray200}`, zIndex:400 }}>
-                    <div style={{ padding:"12px 16px", borderBottom:`1px solid ${C.gray100}` }}>
-                      <p style={{ fontWeight:700, fontSize:13, color:C.gray900 }}>{user.name}</p>
-                      <p style={{ fontSize:11, color:C.gray400 }}>{user.email}</p>
-                    </div>
-                    {[{label:"My Account",to:"/account"},{label:"My Orders",to:"/orders"},{label:`Wishlist (${wishlist?.length||0})`,to:"/wishlist"}].map(item=>(
-                      <Link key={item.label} to={item.to} onClick={()=>setUserMenuOpen(false)} style={{ display:"block", padding:"10px 16px", fontSize:13, color:C.gray600, textDecoration:"none" }} className="hover:bg-indigo-50">{item.label}</Link>
-                    ))}
-                    <div style={{ borderTop:`1px solid ${C.gray100}` }}>
-                      <button onClick={()=>{logout();setUserMenuOpen(false);}} style={{ width:"100%", padding:"10px 16px", textAlign:"left", fontSize:13, color:C.red, background:"none", border:"none", cursor:"pointer" }} className="hover:bg-red-50">Sign Out</button>
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                <Link to="/auth" style={{ fontSize:13, fontWeight:700, color:C.indigo, textDecoration:"none", padding:"6px 12px", borderRadius:8, border:`1.5px solid ${C.indigoLight}` }} className="hidden sm:inline-block">Sign in</Link>
-                <Link to="/auth?mode=register" style={{ background:C.indigo, color:C.white, fontSize:13, fontWeight:700, padding:"7px 16px", borderRadius:20, textDecoration:"none" }} className="hidden sm:inline-block">Register</Link>
-                <Link to="/auth" style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"5px 8px", textDecoration:"none", color:C.gray600, borderRadius:8 }} className="sm:hidden hover:bg-indigo-50">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" style={{ width:20, height:20 }}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0"/>
-                  </svg>
-                  <span style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.55)" }}>...</span>
-                </Link>
-              </div>
-            )}
-          </div>
+          {CATEGORIES.filter(c => c !== "all").map(cat => (
+            <Link key={cat} to={`/products?category=${cat}`}
+              onClick={() => dispatch({ type:"SET_FILTER", filter:{ category:cat } })}
+              style={{ padding:"0 14px", height:32, display:"flex", alignItems:"center", fontSize:13, fontWeight:500, color:"rgba(255,255,255,0.92)", borderRadius:20, textDecoration:"none", whiteSpace:"nowrap", flexShrink:0, textTransform:"capitalize" }}
+              onMouseEnter={e => { e.currentTarget.style.background="rgba(255,255,255,0.15)"; }}
+              onMouseLeave={e => { e.currentTarget.style.background="transparent"; }}
+            >{cat}</Link>
+          ))}
         </div>
-      </div>
 
-      <div className="hidden md:flex vx-pad" style={{ borderTop:`1px solid rgba(255,255,255,0.08)`, gap:2, alignItems:"center", maxWidth:1400, margin:"0 auto", background:C.indigoDark, overflowX:"auto" }}>
-        <Link to="/products" style={{ padding:"0 14px", height:38, display:"flex", alignItems:"center", fontSize:13, fontWeight:700, color:C.white, borderBottom:`2.5px solid ${C.white}`, textDecoration:"none", whiteSpace:"nowrap" }}>All Products</Link>
-        {CATEGORIES.filter(c=>c!=="all").map(cat=>(
-          <Link key={cat} to={`/products?category=${cat}`}
-            onClick={()=>dispatch({type:"SET_FILTER",filter:{category:cat}})}
-            style={{ padding:"0 14px", height:38, display:"flex", alignItems:"center", fontSize:13, fontWeight:500, color:C.gray600, borderBottom:"2.5px solid transparent", textDecoration:"none", whiteSpace:"nowrap", textTransform:"capitalize", transition:"color 0.13s, border-color 0.13s" }}
-            className="hover:text-indigo-700">{cat}</Link>
-        ))}
-        <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:16 }}>
-          <Link to="/orders" style={{ fontSize:12, color:C.gray400, textDecoration:"none" }} className="hover:text-indigo-600">Track Order</Link>
-          <Link to="/help"   style={{ fontSize:12, color:C.gray400, textDecoration:"none" }} className="hover:text-indigo-600">Help</Link>
-        </div>
+        {/* No action icons (WhatsApp, Call, Email, Wishlist, Cart, User) — removed */}
+
       </div>
     </nav>
   );
@@ -788,19 +560,18 @@ const TRUST_ITEMS = [
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function HomePage() {
-  const { dispatch, cartCount, wishlist, user, logout } = useApp();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { dispatch } = useApp();
 
   return (
     <div className="vx-page">
       <style>{GLOBAL_CSS}</style>
 
       <PromoBar />
-      <SideMenu open={menuOpen} onClose={() => setMenuOpen(false)} dispatch={dispatch} />
-      <MainNav cartCount={cartCount} wishlist={wishlist} user={user} logout={logout} dispatch={dispatch} onMenuOpen={() => setMenuOpen(true)} />
 
-      <div style={{ height: 96 }} className="md:hidden" />
-      <div style={{ height: 134 }} className="hidden md:block" />
+      <MainNav dispatch={dispatch} />
+
+      {/* PromoBar 36px + Nav 58px = 94px */}
+      <div style={{ height: 94 }} />
 
       <div className="vx-pad" style={{ maxWidth:1400, margin:"0 auto", paddingTop:16, paddingBottom:32 }}>
 
@@ -812,19 +583,17 @@ export default function HomePage() {
         </div>
 
         {/* 3D cube category row */}
-        {/* 3D cube category row - hidden on mobile */}
-<div
-  className="hidden md:block"
-  style={{
-    background: C.white,
-    borderRadius: 12,
-    padding: "20px 16px",
-    marginBottom: 12,
-    border: `1px solid ${C.gray200}`,
-  }}
->
-  <QuickCats dispatch={dispatch} />
-</div>
+        <div
+          style={{
+            background: C.white,
+            borderRadius: 12,
+            padding: "20px 16px",
+            marginBottom: 12,
+            border: `1px solid ${C.gray200}`,
+          }}
+        >
+          <QuickCats dispatch={dispatch} />
+        </div>
 
         {/* Flash sale */}
         <div style={{ background:C.red, borderRadius:12, overflow:"hidden", marginBottom:12 }}>
@@ -884,7 +653,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Trust strip — slim glowing pills */}
+        {/* Trust strip */}
         <div className="vx-trust">
           {TRUST_ITEMS.map(item => (
             <div key={item.title} className={item.glowClass} style={{

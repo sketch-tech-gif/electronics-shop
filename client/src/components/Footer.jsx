@@ -31,7 +31,7 @@ const NAV_SECTIONS = [
       { label: "My Account",   to: "/account" },
       { label: "My Orders",    to: "/orders" },
       { label: "Track Order",  to: "/orders" },
-      { label: "Returns",      to: "/help" },
+      { label: "Returns",      to: "/returns" },
       { label: "Help Center",  to: "/help" },
     ],
   },
