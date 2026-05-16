@@ -13,16 +13,15 @@ const PAGE_CSS = `
     min-height: 100vh;
     overflow-x: hidden;
     background: #f1f5f9;
-    /* mobile: promobar 28 + nav 58 + bottom tabs ~56 */
-    padding-top: 90px;
+    padding-top: 0;
     padding-bottom: 72px;
     padding-left: 3px;
     padding-right: 3px;
   }
+
   @media (min-width: 640px) {
     .products-page-wrap {
-      /* desktop: promobar 28 + nav 58 */
-      padding-top: 94px;
+      padding-top: 0;
       padding-bottom: 24px;
       padding-left: 5px;
       padding-right: 5px;

@@ -26,7 +26,7 @@ const PrivacyPage       = lazy(() => import('./pages/PrivacyPage'))
 const TermsPage         = lazy(() => import('./pages/TermsPage'))
 const SitemapPage       = lazy(() => import('./pages/SitemapPage'))
 const ReturnsPage       = lazy(() => import('./pages/ReturnsPage'))
-const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
+const ResetPasswordPage = lazy(() => import('./pages/Resetpasswordpage'))
 
 const SORT_OPTIONS = [
   { value: "default",    label: "Featured" },
@@ -76,8 +76,12 @@ function AppShell() {
   const location = useLocation()
   const { filters, dispatch } = useApp()
   const isProductsPage = location.pathname === '/products'
+  const isHomepage = location.pathname === '/' || location.pathname === '/home'
 
-  const [navHeight, setNavHeight]           = useState(96)
+  // Safe initial height: homepage = 92px (28 ticker + 64 logo row)
+  // Other pages = 28 ticker + 44 search + 28 mob-cats + 42 combined = 142px
+  // Use a generous safe default of 150px — ResizeObserver will correct it immediately
+  const [navHeight, setNavHeight]           = useState(150)
   const [viewMode, setViewMode]             = useState("grid")
   const [selectedBrands, setSelectedBrands] = useState([])
   const [priceMin, setPriceMin]             = useState(0)
@@ -87,11 +91,13 @@ function AppShell() {
   useEffect(() => {
     const header = document.querySelector('header')
     if (!header) return
-    const ro = new ResizeObserver(() => setNavHeight(header.offsetHeight))
+    const update = () => setNavHeight(header.offsetHeight)
+    const ro = new ResizeObserver(update)
     ro.observe(header)
-    setNavHeight(header.offsetHeight)
+    // Measure immediately — don't wait for first resize event
+    update()
     return () => ro.disconnect()
-  }, [])
+  }, [location.pathname]) // Re-measure on every route change (homepage vs inner pages differ)
 
   const resetAll = () => {
     dispatch({ type: "RESET_FILTERS" })
@@ -136,7 +142,10 @@ function AppShell() {
         onOpenMobileFilters={() => setMobileFilterOpen(true)}
       />
 
-      <main className="flex-1" style={{ paddingTop: navHeight }}>
+      <main
+        className="flex-1 pb-[58px] sm:pb-0"
+        style={{ paddingTop: navHeight }}
+      >
         <Suspense fallback={<Loader />}>
           <Routes>
             <Route path="/"               element={<HomePage />} />
